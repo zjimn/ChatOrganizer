@@ -17,7 +17,7 @@ client = AzureOpenAI(
     api_key=api_key
 )
 
-def GPT_Completion(texts):
+def generate_gpt_completion(texts):
     completion = client.chat.completions.create(
         model=deployment_name,
         messages=[

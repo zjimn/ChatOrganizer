@@ -3,12 +3,12 @@ from tkinter import filedialog
 from PIL import Image, ImageTk
 import requests
 from io import BytesIO
-from image_completion import AI_CreateImage
-from text_completion import GPT_Completion
+from image_completion import create_image_from_text
+from text_completion import generate_gpt_completion
 from datetime import datetime
+from typing import Optional
 
-image = None
-original_image = None
+original_image: Optional[Image.Image] = None
 photo_image = None
 zoom_level = 1.0
 image_id = None
@@ -91,14 +91,14 @@ def on_submit(input_text, option_var, output_text, output_image, size_var, root)
     if option == "图片":
         output_text.pack_forget()  # 隐藏尺寸下拉列表
         output_image.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)  # Show image
-        #image_data = AI_CreateImage(prompt, selected_size, 1)
+        #image_data = create_image_from_text(prompt, selected_size, 1)
         #url = image_data[0].url  # 从返回的数据中提取 URL
         url = "https://dalleproduse.blob.core.windows.net/private/images/93244186-7746-4be4-b74c-99d917874335/generated_00.png?se=2024-09-07T18%3A24%3A37Z&sig=v%2Bl%2FzBXZt7xZzJafNSS5ysD%2BR3F6Mv19A3Lvls4hkyA%3D&ske=2024-09-13T18%3A18%3A17Z&skoid=09ba021e-c417-441c-b203-c81e5dcd7b7f&sks=b&skt=2024-09-06T18%3A18%3A17Z&sktid=33e01921-4d64-4f8c-a055-5bdaffd5e33d&skv=2020-10-02&sp=r&spr=https&sr=b&sv=2020-10-02"
         show_image(output_image, url, root)
     else:
         output_image.pack_forget()  # 隐藏尺寸下拉列表
         output_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)  # Show text display
-        answer = GPT_Completion(prompt)
+        answer = generate_gpt_completion(prompt)
         show_text(output_text, answer)
 
 def on_option_change(option_var, size_menu):
@@ -140,8 +140,9 @@ def on_resize(event, submit_button, option_menu):
     """处理窗口调整事件，调整下拉列表宽度。"""
     adjust_option_menu_width(submit_button, option_menu)
 
-def bind_events(root, input_text, option_var, output_text, output_image, size_var, submit_button, size_menu):
+def bind_events(root, input_text, option_var, output_text, output_image, size_var, submit_button, size_menu, option_menu):
     # 绑定事件
+    root.bind("<Configure>", lambda e: on_resize(e, submit_button, option_menu))
     option_var.trace("w", lambda *args: on_option_change(option_var, size_menu))
     root.bind("<KeyPress>", lambda event: on_key_press(event, submit_button))
     input_text.bind("<KeyRelease>", lambda e: on_key_release(e, submit_button, input_text, option_var, output_text, output_image, size_var, root))

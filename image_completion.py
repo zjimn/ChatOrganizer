@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI
 
 load_dotenv()
-deployment_name = os.getenv("DALLE3_DEPLOYMENT_NAME")
+deployment_name = os.getenv("DALLE_DEPLOYMENT_NAME")
 api_version="2024-02-01"
 azure_endpoint = os.getenv("AZURE_ENDPOINT")
 api_key = os.getenv("API_KEY")
@@ -17,7 +17,7 @@ client = AzureOpenAI(
     api_key=api_key
 )
 
-def AI_CreateImage(text, size, n):
+def create_image_from_text(text, size, n):
     response = client.images.generate(
         model=deployment_name,
         prompt=text,
