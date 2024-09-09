@@ -4,8 +4,9 @@ from PIL import Image, ImageTk
 import requests
 from io import BytesIO
 from enum import Enum
-
+import math
 import record_manager
+from config import TYPE_OPTION_KEY
 from record_manager import load_txt_records
 from enums import ViewType
 from image_completion import create_image_from_text
@@ -14,6 +15,7 @@ from datetime import datetime
 from typing import Optional
 from PIL import Image, ImageDraw, ImageTk, ImageFont
 from data_management import DataManagement  # Import the class
+from db.config_data_access import ConfigDataAccess
 
 original_image: Optional[Image.Image] = None
 photo_image = None
@@ -96,7 +98,14 @@ def update_image(label):
 
     if original_image:
         # 根据缩放级别调整图像大小
-        new_size = (int(original_image.width * zoom_level), int(original_image.height * zoom_level))
+        if zoom_level <= 0:
+            zoom_level = 0.01
+        if zoom_level > 10:
+            zoom_level = 10
+        new_size = (
+            math.ceil(original_image.width * zoom_level),
+            math.ceil(original_image.height * zoom_level)
+        )
         resized_image = original_image.resize(new_size, Image.Resampling.LANCZOS)
         photo_image = ImageTk.PhotoImage(resized_image)
 
@@ -123,7 +132,8 @@ def show_text(main_window, txt, root):
 
     main_window.output_image.pack_forget()
     main_window.output_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(40, 0))
-    main_window.output_text.config(state=tk.NORMAL)  # 禁止编辑    main_window.output_text.delete(1.0, tk.END)  # Clear the text box
+    main_window.output_text.config(state=tk.NORMAL)  # 禁止编辑
+    main_window.output_text.delete(1.0, tk.END)  # Clear the text box
     main_window.output_text.insert(tk.END, txt)
     main_window.output_text.config(state=tk.DISABLED)
     # Display detailed information on Canvas
@@ -197,13 +207,15 @@ def on_option_change(main_window):
 def on_key_press(event, submit_button):
     """处理键盘按下事件，触发按钮点击事件并调用 on_submit。"""
     if event.keysym == 'Return':
-        submit_button.event_generate("<Button-1>")  # 生成鼠标左键点击事件
+        submit_button.state(['pressed'])  # 按钮按下状态
         # 调用 on_submit 函数
 
 def on_key_release(event, main_window, root):
+    """处理键盘按下事件，触发按钮点击事件并调用 on_submit。"""
     if event.keysym == 'Return':
-        main_window.submit_button.event_generate("<ButtonRelease-1>")  # 生成鼠标左键释放事件
+        main_window.submit_button.state(['!pressed'])  # 取消按钮按下状态
         on_submit(main_window, root)
+
 
 def on_mouse_wheel(event, label):
     global zoom_level
@@ -298,14 +310,14 @@ def on_back_button_click(event, main_window):
     show_tree(main_window)
 
 
-def bind_events(root, main_window):
+def bind_events(root, main_window, config_data_access):
     # 绑定事件
     root.bind("<Configure>", lambda e: on_resize(e, main_window))
     main_window.option_var.trace("w", lambda *args: on_option_change(main_window))
     root.bind("<KeyPress>", lambda event: on_key_press(event, main_window.submit_button))
 
 
-    main_window.input_text.bind("<KeyRelease>", lambda e: on_key_release(e, main_window, root))
+    root.bind("<KeyRelease>", lambda e: on_key_release(e, main_window, root))
     #canvas.bind("<MouseWheel>", lambda e: on_mouse_wheel(e, canvas))
     main_window.output_image.bind_all("<MouseWheel>", lambda e: on_mouse_wheel(e, main_window.output_image))
     main_window.submit_button.config(command=lambda: on_submit(main_window, root))

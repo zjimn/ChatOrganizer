@@ -27,8 +27,8 @@ class DataManagement():
         self.style.map('Treeview', foreground=[('selected', 'white')])
 
         # Configure tags for row colors
-        self.tree.tag_configure('odd', background='#f0f0f0', foreground='#505050')
-        self.tree.tag_configure('even', background='white', foreground='#505050')
+        self.tree.tag_configure('even', background='#f0f0f0', foreground='#505050')
+        self.tree.tag_configure('odd', background='white', foreground='#505050')
         self.tree.tag_configure('hover', background='#e6e6e6', foreground='#505050')
 
     def bind_events(self):
@@ -42,10 +42,10 @@ class DataManagement():
         for index, record in enumerate(records):
             tag = self.get_tag(index)
             self.tree.insert("", tk.END, values=(
-                record["prompt"],
+                record.describe,
                 "",
-                record["content"],
-                record["create_time"]
+                record.content,
+                record.create_time
             ), tags=(tag,))
         self.tree.update_idletasks()
         self.tree.update()
@@ -68,20 +68,20 @@ class DataManagement():
             self.tree.item(item, tags=('hover',))
 
     def add_item(self, record, index):
-        prompt = record["prompt"]
+        prompt = record.describe
         item = None
         try:
-            img_path = record["img"]
+            img_path = record.img_path
             img = Image.open(img_path)
             img = img.resize((80, 80), Image.Resampling.LANCZOS)
             img_tk = ImageTk.PhotoImage(img)
             tag = self.get_tag(index)
             item = self.tree.insert("", tk.END, text="", image=img_tk,
                              values=(
-                                 record["prompt"],
+                                 record.describe,
                                  "",
-                                 record["img"],
-                                 record["create_time"]
+                                 record.img_path,
+                                 record.create_time
                              ), tags=(tag,))
 
             self.image_list.append(img_tk)

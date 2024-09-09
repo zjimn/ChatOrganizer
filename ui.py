@@ -1,13 +1,19 @@
 import tkinter as tk
+from distutils.command.config import config
 from tkinter import ttk, scrolledtext
-
+import config
+from db.config_data_access import ConfigDataAccess
 from record_manager import load_records, load_txt_records
 from data_management import DataManagement
 from enums import ViewType
 
 
 class MainWindow:
-    def __init__(self, root):
+    def __init__(self, root, config_data_access):
+        self.__type_option = None
+        self.__size_option = None
+        self.__config_data_access = config_data_access
+        self.set_config_from_database()
         # Initialize member variables
         self.style = None
         self.scrollbar = None
@@ -30,6 +36,10 @@ class MainWindow:
         self.view_type = ViewType.TXT
         # Create the UI
         self.create_ui()
+
+    def set_config_from_database(self):
+        self.__size_option = self.__config_data_access.get_operation_config_value_by_key(config.IMG_SIZE_OPTION_KEY, 0)
+        self.__type_option = self.__config_data_access.get_operation_config_value_by_key(config.TYPE_OPTION_KEY, 0)
 
     def create_ui(self):
         """创建主窗口和主要组件。"""
@@ -55,13 +65,13 @@ class MainWindow:
         # 创建下拉列表
         self.option_var = tk.StringVar(value="文字")  # 默认值
         options = ["文字", "图片"]
-        self.option_menu = ttk.OptionMenu(self.bottom_frame, self.option_var, options[0],*options)
+        self.option_menu = ttk.OptionMenu(self.bottom_frame, self.option_var, options[self.__type_option],*options)
         self.option_menu.pack(side=tk.RIGHT, padx=5, pady=(0, 15))
 
         # 创建尺寸选择菜单
         self.size_var = tk.StringVar(value="1024x1024")
         size_options = ["1024x1024", "1792x1024", "1024x1792"]
-        self.size_menu = ttk.OptionMenu(self.bottom_frame, self.size_var, size_options[0], *size_options)
+        self.size_menu = ttk.OptionMenu(self.bottom_frame, self.size_var, size_options[self.__size_option], *size_options)
         self.size_menu.pack(side=tk.RIGHT, padx=5, pady=(0, 15))
         self.size_menu.pack_forget()  # Initially hidden
 
