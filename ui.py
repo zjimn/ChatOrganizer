@@ -10,7 +10,8 @@ from enums import ViewType
 
 class MainWindow:
     def __init__(self, root, config_data_access):
-        self.__type_option = None
+        self.output_window = None
+        self.type_option = None
         self.__size_option = None
         self.__config_data_access = config_data_access
         self.set_config_from_database()
@@ -38,8 +39,8 @@ class MainWindow:
         self.create_ui()
 
     def set_config_from_database(self):
-        self.__size_option = self.__config_data_access.get_operation_config_value_by_key(config.IMG_SIZE_OPTION_KEY, 0)
-        self.__type_option = self.__config_data_access.get_operation_config_value_by_key(config.TYPE_OPTION_KEY, 0)
+        self.__size_option = int(self.__config_data_access.get_config_value_by_key(config.IMG_SIZE_OPTION_KEY, 0))
+        self.type_option = int(self.__config_data_access.get_config_value_by_key(config.TYPE_OPTION_KEY, 0))
 
     def create_ui(self):
         """创建主窗口和主要组件。"""
@@ -65,7 +66,7 @@ class MainWindow:
         # 创建下拉列表
         self.option_var = tk.StringVar(value="文字")  # 默认值
         options = ["文字", "图片"]
-        self.option_menu = ttk.OptionMenu(self.bottom_frame, self.option_var, options[self.__type_option],*options)
+        self.option_menu = ttk.OptionMenu(self.bottom_frame, self.option_var, options[self.type_option],*options)
         self.option_menu.pack(side=tk.RIGHT, padx=5, pady=(0, 15))
 
         # 创建尺寸选择菜单
@@ -75,17 +76,24 @@ class MainWindow:
         self.size_menu.pack(side=tk.RIGHT, padx=5, pady=(0, 15))
         self.size_menu.pack_forget()  # Initially hidden
 
+        self.output_window = tk.Toplevel(self.root)
+        self.output_window.title("")
+        self.output_window.withdraw()
+
+        # 获取主窗口的位置
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+
+        # 设置 Toplevel 窗口的尺寸和位置
+        self.output_window.geometry(f"{600}x{600}+{x + 50}+{y + 50}")
+
         # 创建显示框
-        self.output_frame = tk.Frame(self.root)
+        self.output_frame = tk.Frame(self.output_window)
         self.output_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         #self.output_frame.pack_forget()  # 默认隐藏
         # Create Canvas component
-        self.canvas = tk.Canvas(self.output_frame, bg="#f0f0f0", width=600, height=200)
+        self.canvas = tk.Canvas(self.output_frame, bg="#f0f0f0", width=600, height=600)
 
-
-        self.txt_frame = tk.Frame(self.output_frame)
-        self.txt_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        self.txt_frame.pack_forget()  # 默认隐藏
         self.output_text = scrolledtext.ScrolledText(self.output_frame, wrap=tk.WORD, state=tk.DISABLED)
         #self.output_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         self.output_text.pack_forget()
@@ -97,7 +105,7 @@ class MainWindow:
 
 
         # Create Treeview component
-        self.tree = ttk.Treeview(self.output_frame, columns=("prompt", "img", "content", "create_time", "operation"), height=7)
+        self.tree = ttk.Treeview(self.root, columns=("prompt", "img", "content", "create_time", "operation"), height=7)
         self.tree.heading("#0", text="图片")  # Default column for images
         self.tree.heading("img", text="图片")
         self.tree.heading("prompt", text="描述")
@@ -114,7 +122,7 @@ class MainWindow:
         self.scrollbar = tk.Scrollbar(self.tree, orient=tk.VERTICAL, command=self.tree.yview)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         # Add Treeview to window
-        self.tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.tree.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
         self.tree.configure(yscrollcommand=self.scrollbar.set)
 
 #class MainWin:

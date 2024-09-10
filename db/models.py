@@ -1,6 +1,7 @@
 # models.py
 
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from db.database import Base
 from datetime import datetime
 
@@ -15,9 +16,24 @@ class ContentData(Base):
     img_path = Column(String)
     create_time = Column(DateTime, default=datetime.utcnow)
 
+    # Other fields...
+    dialogues = relationship('Dialogue', order_by='Dialogue.id', back_populates='content_data')
 
-class OperationConfig(Base):
-    __tablename__ = 'operation_config'
+class Dialogue(Base):
+    __tablename__ = 'dialogue'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    content_id = Column(Integer, ForeignKey('content_data.id'), nullable=False)
+    role = Column(String, nullable=False)  # e.g., 'user' or 'ai'
+    message = Column(Text, nullable=False)
+    img_path = Column(String)
+    create_time = Column(DateTime, default=datetime.utcnow)
+
+    # Relationship to ContentData
+    content_data = relationship('ContentData', back_populates='dialogues')
+
+class Config(Base):
+    __tablename__ = 'config'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String(255), nullable=False)  # 下拉名称

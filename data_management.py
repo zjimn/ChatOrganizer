@@ -36,7 +36,7 @@ class DataManagement():
         # 绑定列宽度变化事件
         self.tree.bind('<Configure>', self.on_tree_resize)
 
-    def update_txt_data_items(self, output_frame):
+    def update_txt_data_items(self):
         self.set_txt_style()
         records = record_manager.load_txt_records()
         for index, record in enumerate(records):
@@ -49,6 +49,12 @@ class DataManagement():
             ), tags=(tag,))
         self.tree.update_idletasks()
         self.tree.update()
+
+    def update_data_items(self):
+        if self.main_window.type_option == 0:
+            self.update_txt_data_items()
+        else:
+            self.update_img_data_items()
 
 
     def get_tag(self, index):
@@ -73,7 +79,8 @@ class DataManagement():
         try:
             img_path = record.img_path
             img = Image.open(img_path)
-            img = img.resize((80, 80), Image.Resampling.LANCZOS)
+            img = self.resize_image(img, (80, 80))
+            #img = img.resize((80, 80), Image.Resampling.LANCZOS)
             img_tk = ImageTk.PhotoImage(img)
             tag = self.get_tag(index)
             item = self.tree.insert("", tk.END, text="", image=img_tk,
@@ -90,10 +97,39 @@ class DataManagement():
             print(f"Error adding item with image {prompt}: {e}")
         return item
 
+    def resize_image(self, img, target_size):
+
+        # 获取原始图片的尺寸
+        original_width, original_height = img.size
+
+        # 目标宽度和高度
+        target_width, target_height = target_size
+
+        # 计算新的尺寸
+        ratio = min(target_width / original_width, target_height / original_height)
+        new_width = int(original_width * ratio)
+        new_height = int(original_height * ratio)
+
+        # 调整图片大小
+        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        # 创建一个目标大小的白色背景图像
+        background = Image.new('RGBA', target_size, (255, 255, 255, 0))
+
+        # 计算位置
+        position = ((target_width - new_width) // 2, (target_height - new_height) // 2)
+
+        # 将调整大小的图片粘贴到背景中
+        background.paste(img, position)
+
+        return background
+
     def set_img_style(self):
 
         # 设置 Treeview 标题的样式
         self.style.configure('Treeview.Heading',
+                        borderwidth=0,  # 设置边框宽度为 0
+                        relief='flat',  # 设置为平面样式
                         padding=(0, 20, 0, 20),
                         font=('Helvetica', 15, 'bold'),
                         background='#f0f0f0',  # 标题背景颜色与内容行保持一致
@@ -141,7 +177,7 @@ class DataManagement():
         self.set_column_width(self.main_window.output_frame)
         self.clear_treeview()
 
-    def update_img_data_items(self, output_frame):
+    def update_img_data_items(self):
         self.set_img_style()
         records = record_manager.load_img_records()
         index = 0

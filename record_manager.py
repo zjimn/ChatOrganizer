@@ -21,20 +21,18 @@ def load_records(file_path):
 
 def load_txt_records():
     with ContentDataAccess() as cda:
-        cda.insert_data("example_type", "example_description", "example_content", "path/to/image.jpg")
         all_data = cda.get_all_txt_data()
     return all_data
 
 def load_img_records():
     with ContentDataAccess() as cda:
-        cda.insert_data("example_type", "example_description", "example_content", "path/to/image.jpg")
         all_data = cda.get_all_image_data()
     return all_data
 
-def save_img_record(prompt, img):
+def save_img_record(prompt, db_img_path):
 
     with ContentDataAccess() as cda:
-        cda.insert_data(ContentType.IMG.value, prompt, "", img)
+        cda.insert_data(ContentType.IMG.value, prompt, "", db_img_path)
 
 def save_txt_record(prompt, content):
     with ContentDataAccess() as cda:
