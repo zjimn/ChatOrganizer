@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import record_manager
+from db.content_data_access import ContentDataAccess
 
 
 class DataManagement():
@@ -12,6 +13,8 @@ class DataManagement():
         # Initialize style and image list
         self.style = ttk.Style()
         self.image_list = []
+        # 创建右键菜单
+        self.context_menu = tk.Menu(self.tree, tearoff=0)
         self.bind_events()
 
     def configure_styles(self):
@@ -36,19 +39,52 @@ class DataManagement():
         # 绑定列宽度变化事件
         self.tree.bind('<Configure>', self.on_tree_resize)
 
+        self.context_menu.add_command(label="编辑", command=self.edit_selected_item)
+        self.context_menu.add_command(label="删除", command=self.delete_selected_item)
+
+        # 绑定右键单击事件
+        self.tree.bind("<Button-3>", self.show_context_menu)
+
+    def show_context_menu(self, event):
+        # 弹出菜单项
+        iid = self.tree.identify_row(event.y)
+        if iid:
+            self.tree.selection_set(iid)
+            self.context_menu.post(event.x_root, event.y_root)
+
+    def delete_selected_item(self):
+        selected_item = self.tree.selection()[0]
+        with ContentDataAccess() as cda:
+            values = self.tree.item(selected_item, 'values')
+            cda.delete_data(values[0])
+            self.tree.delete(selected_item)
+
+    def edit_selected_item(self):
+        selected_item = self.tree.selection()[0]
+        print(f"Edit item: {selected_item}")
+        # 在此实现编辑功能，例如弹出一个输入对话框
+
     def update_txt_data_items(self):
         self.set_txt_style()
         records = record_manager.load_txt_records()
         for index, record in enumerate(records):
             tag = self.get_tag(index)
             self.tree.insert("", tk.END, values=(
-                record.describe,
+                record.id,
                 "",
+                "",
+                record.describe,
                 record.content,
-                record.create_time
+                record.create_time,
             ), tags=(tag,))
         self.tree.update_idletasks()
         self.tree.update()
+        children = self.tree.get_children()
+        if len(children) == 0:
+            return
+        last_item = self.tree.get_children()[-1]
+        # Scroll to the last row
+        self.tree.see(last_item)
 
     def update_data_items(self):
         if self.main_window.type_option == 0:
@@ -85,10 +121,12 @@ class DataManagement():
             tag = self.get_tag(index)
             item = self.tree.insert("", tk.END, text="", image=img_tk,
                              values=(
-                                 record.describe,
+                                 record.id,
                                  "",
+                                 "",
+                                 record.describe,
                                  record.img_path,
-                                 record.create_time
+                                 record.create_time,
                              ), tags=(tag,))
 
             self.image_list.append(img_tk)
@@ -130,7 +168,7 @@ class DataManagement():
         self.style.configure('Treeview.Heading',
                         borderwidth=0,  # 设置边框宽度为 0
                         relief='flat',  # 设置为平面样式
-                        padding=(0, 20, 0, 20),
+                        padding=(10, 20, 10, 20),
                         font=('Helvetica', 15, 'bold'),
                         background='#f0f0f0',  # 标题背景颜色与内容行保持一致
                         foreground='#232323'  # 标题字体颜色为白色
@@ -138,6 +176,7 @@ class DataManagement():
         self.configure_styles()
         self.style.configure('Treeview',
                         rowheight=100, font=("Arial", 12),
+                        padding=(10, 10, 10, 10),
                         fieldbackground = 'white',
                         bordercolor = '#cccccc',  # 设置列之间的竖线颜色
                         borderwidth = 10,
@@ -147,8 +186,8 @@ class DataManagement():
                              )
 
         self.tree["show"] = "tree headings"
-        self.tree["displaycolumns"] = ("prompt", "create_time", "operation")
-        self.set_column_width(self.main_window.output_frame)
+        self.tree["displaycolumns"] = ("prompt", "create_time")
+        #self.set_column_width(self.main_window.output_frame)
         self.clear_treeview()
         self.image_list.clear()
 
@@ -159,22 +198,23 @@ class DataManagement():
         self.style.configure('Treeview.Heading',
                              borderwidth=0,  # 设置边框宽度为 0
                              relief='flat',  # 设置为平面样式
-                             padding=(0, 10, 0, 10),
+                             padding=(10, 10, 10, 10),
                              font=('Helvetica', 15, 'bold'),
                              background='#f0f0f0',  # 标题背景颜色与内容行保持一致
                              foreground='#232323'  # 标题字体颜色为白色
                              )
         self.style.configure('Treeview',
                              rowheight=50, font=("Arial", 12),
+                             padding=(10, 10, 10, 10),
                              fieldbackground='white',
                              bordercolor='#cccccc',  # 设置列之间的竖线颜色
                              borderwidth=1,
                              #relief='solid'  # 使用 solid 来显示边框
                              )
         self.tree["show"] = "headings"
-        self.tree["displaycolumns"] = ("prompt", "content", "create_time", "operation")
+        self.tree["displaycolumns"] = ("prompt", "content", "create_time")
         self.style.configure("Treeview", font=("Arial", 12))  # 设置字体为 Arial, 大小为 12
-        self.set_column_width(self.main_window.output_frame)
+        #self.set_column_width(self.main_window.output_frame)
         self.clear_treeview()
 
     def update_img_data_items(self):
@@ -186,7 +226,12 @@ class DataManagement():
             index += 1
         self.tree.update_idletasks()  # Force update to ensure styles are applied
         self.tree.update()
-        self.add_buttons_to_tree_item(self.main_window.root)
+        children = self.tree.get_children()
+        if len(children) == 0:
+            return
+        last_item = self.tree.get_children()[-1]
+        # Scroll to the last row
+        self.tree.see(last_item)
 
     def add_buttons_to_tree_item(self, root):
         # 移除之前添加的按钮
@@ -237,7 +282,7 @@ class DataManagement():
         if num_columns > 0:
             # 设置列宽
             column_width = frame_width // num_columns
-            self.tree.column("#0", width=200)  # 固定宽度的列
+            self.tree.column("#0", width=100)  # 固定宽度的列
             for col in self.tree["columns"]:
                 if col != "#0":
                     self.tree.column(col, width=column_width)
@@ -256,3 +301,5 @@ class DataManagement():
     def clear_treeview(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
+
+

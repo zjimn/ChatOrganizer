@@ -14,10 +14,11 @@ class ContentData(Base):
     describe = Column(Text)
     content = Column(Text)
     img_path = Column(String)
-    create_time = Column(DateTime, default=datetime.utcnow)
+    create_time = Column(DateTime, default=datetime.now)
+    delete_time = Column(DateTime, nullable=True, default=None)  # Field for soft delete
 
-    # Other fields...
-    dialogues = relationship('Dialogue', order_by='Dialogue.id', back_populates='content_data')
+    # Enable cascading deletes on the dialogues relationship
+    dialogues = relationship('Dialogue', order_by='Dialogue.id', back_populates='content_data', cascade='all, delete-orphan')
 
 class Dialogue(Base):
     __tablename__ = 'dialogue'
@@ -27,7 +28,8 @@ class Dialogue(Base):
     role = Column(String, nullable=False)  # e.g., 'user' or 'ai'
     message = Column(Text, nullable=False)
     img_path = Column(String)
-    create_time = Column(DateTime, default=datetime.utcnow)
+    create_time = Column(DateTime, default=datetime.now)
+    delete_time = Column(DateTime, nullable=True, default=None)  # Field for soft delete
 
     # Relationship to ContentData
     content_data = relationship('ContentData', back_populates='dialogues')
@@ -38,4 +40,5 @@ class Config(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String(255), nullable=False)  # 下拉名称
     value = Column(String(255), nullable=False)  # 下拉值
-    create_time = Column(DateTime, default=datetime.utcnow)  # 创建时间
+    create_time = Column(DateTime, default=datetime.now)  # 创建时间
+    delete_time = Column(DateTime, nullable=True, default=None)  # Field for soft delete

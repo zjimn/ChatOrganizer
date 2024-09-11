@@ -25,17 +25,17 @@ class SystemConfig:
         existing_keys = {config.key for config in configs}
         for key, value in self.CONFIGS.items():
             if key not in existing_keys:
-                self.config_data_access.insert_config(key, value)
+                self.config_data_access.upsert_config(key, value)
 
         for item in configs:
             self.CONFIGS[item.key] = item.value
 
     def get(self, key: str, default=None):
-        return self.CONFIGS[key] if self.CONFIGS else default
+        return self.CONFIGS.get(key) if self.CONFIGS else default
 
     def set(self, key: str, value: str) -> None:
         self.CONFIGS[key] = value
-        self.config_data_access.insert_config(key, value)
+        self.config_data_access.upsert_config(key, value)
 
     def delete(self, key: str) -> None:
         del self.CONFIGS[key]

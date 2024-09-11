@@ -27,7 +27,9 @@ conversation_history =[]
 # Initialize a list to keep track of the conversation history
 
 
-def generate_gpt_completion(user_input):
+def generate_gpt_completion(user_input, new = False):
+    if new:
+        token_manager.clear_img_history()
     # Append the user input to the conversation history
     token_manager.add_txt_message("user", user_input)
 

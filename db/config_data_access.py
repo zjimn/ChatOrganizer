@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List
 from db.database import Session
 from db.database import init_db
@@ -29,7 +30,7 @@ class ConfigDataAccess:
     def get_config_value_by_key(self, key: str, default) -> Optional[Config]:
         """Retrieve a configuration by its key."""
         try:
-            config = self.session.query(Config).filter(Config.key == key).one_or_none()
+            config = self.session.query(Config).filter(Config.key == key, Config.delete_time is not None).first()
             return config.value if config and config.value else default
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -38,7 +39,7 @@ class ConfigDataAccess:
     def get_all_configs(self) -> List[Config]:
         """Retrieve all configurations."""
         try:
-            config_list = self.session.query(Config).all()
+            config_list = self.session.query(Config).filter(Config.delete_time is not None).all()
             return config_list
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -47,7 +48,7 @@ class ConfigDataAccess:
     def upsert_config(self, key: str, value: str) -> None:
         """Update an existing configuration or insert a new one."""
         try:
-            config = self.session.query(Config).filter(Config.key == key).one_or_none()
+            config = self.session.query(Config).filter(Config.key == key, Config.delete_time is not None).one_or_none()
             if config:
                 # Update the existing configuration
                 config.value = value
@@ -63,9 +64,9 @@ class ConfigDataAccess:
     def delete_config(self, key: str) -> None:
         """Delete a configuration by its key."""
         try:
-            config = self.session.query(Config).filter(Config.key == key).one_or_none()
+            config = self.session.query(Config).filter(Config.key == key, Config.delete_time is not None).one_or_none()
             if config:
-                self.session.delete(config)
+                config.delete_time = datetime.utcnow()
                 self.session.commit()
             else:
                 print("No configuration found with the provided key.")

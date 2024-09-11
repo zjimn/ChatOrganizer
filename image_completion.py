@@ -24,7 +24,9 @@ client = AzureOpenAI(
 context_history = []
 
 
-def create_image_from_text(text, size, n):
+def create_image_from_text(text, size, n, new = False):
+    if new:
+        token_manager.clear_img_history()
     # Append the current prompt to the context history
     token_manager.add_img_message("Prompt", text)
     # Generate images using the context-inclusive prompt

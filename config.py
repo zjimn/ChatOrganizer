@@ -1,2 +1,4 @@
 IMG_SIZE_OPTION_KEY = "img_size_option"
 TYPE_OPTION_KEY = "type_option"
+TYPE_OPTION_TXT_KEY = '0'
+TYPE_OPTION_IMG_KEY = '1'
