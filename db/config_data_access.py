@@ -30,7 +30,7 @@ class ConfigDataAccess:
     def get_config_value_by_key(self, key: str, default) -> Optional[Config]:
         """Retrieve a configuration by its key."""
         try:
-            config = self.session.query(Config).filter(Config.key == key, Config.delete_time is not None).first()
+            config = self.session.query(Config).filter(Config.key == key, Config.delete_time.is_(None)).first()
             return config.value if config and config.value else default
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -39,7 +39,7 @@ class ConfigDataAccess:
     def get_all_configs(self) -> List[Config]:
         """Retrieve all configurations."""
         try:
-            config_list = self.session.query(Config).filter(Config.delete_time is not None).all()
+            config_list = self.session.query(Config).filter(Config.delete_time.is_(None)).all()
             return config_list
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -48,14 +48,15 @@ class ConfigDataAccess:
     def upsert_config(self, key: str, value: str) -> None:
         """Update an existing configuration or insert a new one."""
         try:
-            config = self.session.query(Config).filter(Config.key == key, Config.delete_time is not None).one_or_none()
-            if config:
-                # Update the existing configuration
-                config.value = value
-            else:
-                # Insert a new configuration
-                config = Config(key=key, value=value)
-                self.session.add(config)
+            configs = self.session.query(Config).filter(Config.key == key, Config.delete_time.is_(None)).all()
+            for conf in configs:
+                if conf:
+                    # Update the existing configuration
+                    conf.value = value
+                else:
+                    # Insert a new configuration
+                    conf = Config(key=key, value=value)
+                self.session.add(conf)
             self.session.commit()
         except Exception as e:
             self.session.rollback()
@@ -64,12 +65,12 @@ class ConfigDataAccess:
     def delete_config(self, key: str) -> None:
         """Delete a configuration by its key."""
         try:
-            config = self.session.query(Config).filter(Config.key == key, Config.delete_time is not None).one_or_none()
-            if config:
-                config.delete_time = datetime.utcnow()
-                self.session.commit()
-            else:
-                print("No configuration found with the provided key.")
+            configs = self.session.query(Config).filter(Config.key == key, Config.delete_time.is_(None)).one_or_none()
+            for conf in configs:
+                if conf:
+                    conf.delete_time = datetime.utcnow()
+                    self.session.add(conf)
+            self.session.commit()
         except Exception as e:
             self.session.rollback()
             print(f"An error occurred: {e}")

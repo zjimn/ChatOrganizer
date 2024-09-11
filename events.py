@@ -10,18 +10,21 @@ import config
 import record_manager
 import system_config
 from config import TYPE_OPTION_KEY, IMG_SIZE_OPTION_KEY
+from image_completion import ImageGenerator
 from record_manager import load_txt_records
 from enums import ViewType
-from image_completion import create_image_from_text
+import text_completion
+import image_completion
 from system_config import SystemConfig
-from text_completion import generate_gpt_completion
 from datetime import datetime
 from typing import Optional
 from PIL import Image, ImageDraw, ImageTk, ImageFont
 from data_management import DataManagement  # Import the class
 from pathlib import Path
+import util.token_management
 
 from db.config_data_access import ConfigDataAccess
+from util.token_management import TokenManager
 
 
 class EventManager:
@@ -45,6 +48,9 @@ class EventManager:
         self.center_window()
         root.update_idletasks()
         self.set_output_window_pos()
+        self.token_management = TokenManager()
+        self.img_generator = ImageGenerator()
+        self.txt_generator = text_completion.TextGenerator()
 
     def save_image(self, image):
         # 获取当前日期和时间，格式化为文件名
@@ -112,7 +118,8 @@ class EventManager:
         """显示生成的文本内容。"""
         main_window.output_window.deiconify()  # 弹出窗口
         self.main_window.output_window_scrollbar.pack_forget()
-        self.main_window.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.main_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        #self.main_window.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.clear_output_window_canvas_data()
         main_window.output_image.pack_forget()
         main_window.output_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(10, 15))
@@ -132,14 +139,14 @@ class EventManager:
 
     def show_tree(self):
         view_type = self.main_window.view_type
-
+        txt = self.main_window.search_input_text.get()
         data_manager = DataManagement(self.main_window)
         if view_type == ViewType.TXT:
             data_manager.set_column_width(self.main_window.output_frame)
-            data_manager.update_txt_data_items()
+            data_manager.update_txt_data_items(txt)
         elif view_type == ViewType.IMG:
             data_manager.set_column_width(self.main_window.output_frame)
-            data_manager.update_img_data_items()
+            data_manager.update_img_data_items(txt)
         self.main_window.data_manager = data_manager
 
     def download_img(self, url):
@@ -156,7 +163,7 @@ class EventManager:
         if not prompt:
             return
         if option == "图片":
-            image_data = create_image_from_text(prompt, selected_size, 1, self.session_id is None)
+            image_data = self.img_generator.create_image_from_text(prompt, selected_size, 1, self.session_id is None)
             url = image_data[0]  # 从返回的数据中提取 URL
             #self.show_image(main_window, url, root)
             filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png")
@@ -171,10 +178,10 @@ class EventManager:
             self.show_tree()
 
         else:
-            answer = generate_gpt_completion(prompt, self.session_id is None)
+            answer = self.txt_generator.generate_gpt_completion(prompt, self.session_id is None)
             prompt = main_window.input_text.get('1.0', 'end-1c')
-            content = f"\nuser: {prompt}\n"
-            content += f"\nassistant: {answer}\n"
+            content = f"\n{config.USER_NAME}: {prompt}\n"
+            content += f"\n{config.ASSISTANT_NAME}: {answer}\n"
             self.show_text(main_window, content, True)
             self.session_id = record_manager.save_txt_record(self.session_id, prompt, answer)
             self.show_tree()
@@ -195,6 +202,7 @@ class EventManager:
 
     def set_dialog_images(self, data):
         self.main_window.output_text.pack_forget()
+        self.main_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.Y, expand=True)
         self.main_window.output_window.deiconify()  # 弹出窗口
         self.main_window.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.clear_output_window_canvas_data()
@@ -383,12 +391,22 @@ class EventManager:
         values = main_window.tree.item(item, 'values')  # Get the values of the selected item
         #show_text(main_window, values[0], root)
         self.session_id = values[0]
-
         if main_window.view_type == ViewType.TXT:
-            content = record_manager.load_txt_dialogs(self.session_id)
+            data = record_manager.load_txt_dialogs(self.session_id)
+            content = "\n".join(f"{item.role}: {item.message}\n" for item in data)
+            self.token_management.clear_txt_history()
+            for item in data:
+                self.token_management.add_txt_message(item.role, item.message) # add session message
+
+            self.txt_generator.token_manager = self.token_management
             self.show_text(main_window, content)
         elif main_window.view_type == ViewType.IMG:
             dialogs = record_manager.load_img_dialogs(self.session_id)
+            self.token_management.clear_img_history()
+            for item in dialogs:
+                if item.role == "user":
+                    self.token_management.add_img_message("Prompt", item.message) # add session message, only prompt, because the img url will expire
+            self.img_generator.token_manager = self.token_management
             self.set_dialog_images(dialogs)
 
 
@@ -398,6 +416,8 @@ class EventManager:
     def close_output_window(self):
         self.main_window.output_window.withdraw()
         self.session_id = None
+        self.token_management.clear_img_history()
+        self.token_management.clear_txt_history()
 
     def on_text_change(self, event):
         self.main_window.input_text.edit_modified(False)
@@ -406,6 +426,10 @@ class EventManager:
         num_lines = len(lines)
         new_height = max(num_lines, 1)
         self.main_window.input_text.config(height=new_height)
+
+    def on_search_text_change(self, *args):
+        self.main_window.input_text.edit_modified(False)
+        self.show_tree()
 
     def on_alt_return_press(self, event):
         """处理 Alt + Return 组合键，执行回车键效果。"""
@@ -436,4 +460,4 @@ class EventManager:
 
         # 禁用单独 Return 键的默认行为
         self.main_window.input_text.bind("<Return>", lambda event: "break")
-
+        self.main_window.search_input_entry_text.trace('w', self.on_search_text_change)  # 'w' 表示监听写操作

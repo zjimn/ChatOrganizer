@@ -20,15 +20,20 @@ def load_records(file_path):
         data = json.load(file)
     return data
 
-def load_txt_records():
+def load_txt_records(txt):
     with ContentDataAccess() as cda:
-        all_data = cda.get_all_txt_data()
+        all_data = cda.get_data_by_describe_or_content(txt, ContentType.TXT.value)
     return all_data
+
+def load_txt_dialogs_with_merge(content_id):
+    with DialogueDataAccess() as dda:
+        all_data = dda.get_data_by_content_id(content_id)
+        return merge_txt_content(all_data)
 
 def load_txt_dialogs(content_id):
     with DialogueDataAccess() as dda:
         all_data = dda.get_data_by_content_id(content_id)
-        return merge_txt_content(all_data)
+        return all_data
 
 def load_img_dialogs(content_id):
     with DialogueDataAccess() as dda:
@@ -38,9 +43,9 @@ def load_img_dialogs(content_id):
 def merge_txt_content(data):
     return "\n".join(f"{item.role}: {item.message}\n" for item in data)
 
-def load_img_records():
+def load_img_records(txt):
     with ContentDataAccess() as cda:
-        all_data = cda.get_all_image_data()
+        all_data = cda.get_data_by_describe_or_content(txt, ContentType.IMG.value)
     return all_data
 
 def save_img_record(content_id, prompt, db_img_path):

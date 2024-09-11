@@ -34,7 +34,7 @@ class DialogueDataAccess:
     def get_data_by_id(self, data_id: int) -> Optional[Dialogue]:
         """Retrieve a record by its ID."""
         try:
-            data = self.session.query(Dialogue).filter(Dialogue.id == data_id, Dialogue.delete_time is not None).one_or_none()
+            data = self.session.query(Dialogue).filter(Dialogue.id == data_id, Dialogue.delete_time.is_(None)).one_or_none()
             return data
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -43,7 +43,7 @@ class DialogueDataAccess:
     def get_all_data(self) -> List[Dialogue]:
         """Retrieve all records."""
         try:
-            data_list = self.session.query(Dialogue).filter(Dialogue.delete_time is not None).all()
+            data_list = self.session.query(Dialogue).filter(Dialogue.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -52,7 +52,7 @@ class DialogueDataAccess:
     def get_data_by_content_id(self, content_id: int) -> List[Dialogue]:
         """Retrieve all records associated with a specific content_id."""
         try:
-            data_list = self.session.query(Dialogue).filter(Dialogue.content_id == content_id, Dialogue.delete_time is not None).all()
+            data_list = self.session.query(Dialogue).filter(Dialogue.content_id == content_id, Dialogue.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -61,7 +61,7 @@ class DialogueDataAccess:
     def update_data(self, data_id: int, role: str = None, message: str = None, img_path: str = None) -> None:
         """Update a record by its ID."""
         try:
-            data = self.session.query(Dialogue).filter(Dialogue.id == data_id, Dialogue.delete_time is not None).one_or_none()
+            data = self.session.query(Dialogue).filter(Dialogue.id == data_id, Dialogue.delete_time.is_(None)).one_or_none()
             if data:
                 if role is not None:
                     data.role = role
@@ -79,7 +79,7 @@ class DialogueDataAccess:
     def delete_data(self, data_id: int) -> None:
         """Delete a record by its ID."""
         try:
-            data = self.session.query(Dialogue).filter(Dialogue.id == data_id, Dialogue.delete_time is not None).one_or_none()
+            data = self.session.query(Dialogue).filter(Dialogue.id == data_id, Dialogue.delete_time.is_(None)).one_or_none()
             if data:
                 data.delete_time = datetime.utcnow()
                 self.session.commit()

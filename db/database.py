@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from db.config import DATABASE_URL
 
 # Create the SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, echo=True)
 
 # Create the base class for our models
 Base = declarative_base()

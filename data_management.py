@@ -64,9 +64,9 @@ class DataManagement():
         print(f"Edit item: {selected_item}")
         # 在此实现编辑功能，例如弹出一个输入对话框
 
-    def update_txt_data_items(self):
+    def update_txt_data_items(self, txt):
         self.set_txt_style()
-        records = record_manager.load_txt_records()
+        records = record_manager.load_txt_records(txt)
         for index, record in enumerate(records):
             tag = self.get_tag(index)
             self.tree.insert("", tk.END, values=(
@@ -86,11 +86,11 @@ class DataManagement():
         # Scroll to the last row
         self.tree.see(last_item)
 
-    def update_data_items(self):
+    def update_data_items(self, txt = ""):
         if self.main_window.type_option == 0:
-            self.update_txt_data_items()
+            self.update_txt_data_items(txt)
         else:
-            self.update_img_data_items()
+            self.update_img_data_items(txt)
 
 
     def get_tag(self, index):
@@ -176,7 +176,7 @@ class DataManagement():
         self.configure_styles()
         self.style.configure('Treeview',
                         rowheight=100, font=("Arial", 12),
-                        padding=(10, 10, 10, 10),
+                        padding=(5, 10, 5, 10),
                         fieldbackground = 'white',
                         bordercolor = '#cccccc',  # 设置列之间的竖线颜色
                         borderwidth = 10,
@@ -205,7 +205,7 @@ class DataManagement():
                              )
         self.style.configure('Treeview',
                              rowheight=50, font=("Arial", 12),
-                             padding=(10, 10, 10, 10),
+                             padding=(5, 10, 5, 10),
                              fieldbackground='white',
                              bordercolor='#cccccc',  # 设置列之间的竖线颜色
                              borderwidth=1,
@@ -217,9 +217,9 @@ class DataManagement():
         #self.set_column_width(self.main_window.output_frame)
         self.clear_treeview()
 
-    def update_img_data_items(self):
+    def update_img_data_items(self, txt):
         self.set_img_style()
-        records = record_manager.load_img_records()
+        records = record_manager.load_img_records(txt)
         index = 0
         for record in records:
             item = self.add_item(record, index)
