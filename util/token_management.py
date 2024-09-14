@@ -38,10 +38,10 @@ class TokenManager:
 
 
     def clear_txt_history(self):
-        conversation_txt_history = []
+        self.conversation_txt_history = []
 
     def clear_img_history(self):
-        conversation_img_history = []
+        self.conversation_img_history = []
 
 
     def manage_img_history(self):

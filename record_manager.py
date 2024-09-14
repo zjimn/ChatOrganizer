@@ -20,9 +20,9 @@ def load_records(file_path):
         data = json.load(file)
     return data
 
-def load_txt_records(txt):
+def load_txt_records(txt, selected_content_hierarchy_child_id):
     with ContentDataAccess() as cda:
-        all_data = cda.get_data_by_describe_or_content(txt, ContentType.TXT.value)
+        all_data = cda.get_data_by_describe_or_content(txt, ContentType.TXT.value, selected_content_hierarchy_child_id)
     return all_data
 
 def load_txt_dialogs_with_merge(content_id):
@@ -43,24 +43,24 @@ def load_img_dialogs(content_id):
 def merge_txt_content(data):
     return "\n".join(f"{item.role}: {item.message}\n" for item in data)
 
-def load_img_records(txt):
+def load_img_records(txt, selected_content_hierarchy_child_id):
     with ContentDataAccess() as cda:
-        all_data = cda.get_data_by_describe_or_content(txt, ContentType.IMG.value)
+        all_data = cda.get_data_by_describe_or_content(txt, ContentType.IMG.value, selected_content_hierarchy_child_id)
     return all_data
 
-def save_img_record(content_id, prompt, db_img_path):
+def save_img_record(content_id,content_hierarchy_child_id, prompt, db_img_path):
     with ContentDataAccess() as cda:
         if content_id is None:
-            content_id = cda.insert_data(ContentType.IMG.value, prompt, "", db_img_path)
+            content_id = cda.insert_data(ContentType.IMG.value, content_hierarchy_child_id,  prompt, "", db_img_path)
         with DialogueDataAccess() as dda:
             dda.insert_data(content_id, "user", prompt)
             dda.insert_data(content_id, "assistant", "", db_img_path)
     return content_id
 
-def save_txt_record(content_id, prompt, content):
+def save_txt_record(content_id, content_hierarchy_child_id, prompt, content):
     with ContentDataAccess() as cda:
         if content_id is None:
-            content_id = cda.insert_data(ContentType.TXT.value, prompt, content, "")
+            content_id = cda.insert_data(ContentType.TXT.value, content_hierarchy_child_id, prompt, content, "")
         with DialogueDataAccess() as dda:
             dda.insert_data(content_id, "user", prompt)
             dda.insert_data(content_id, "assistant", content)

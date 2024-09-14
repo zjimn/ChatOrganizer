@@ -6,8 +6,13 @@ from sqlalchemy.orm import sessionmaker
 from db.config import DATABASE_URL
 
 # Create the SQLAlchemy engine
-engine = create_engine(DATABASE_URL, echo=True)
-
+engine = create_engine(
+    DATABASE_URL, echo=True,
+    pool_size=10,  # Default is 5
+    max_overflow=20,  # Default is 10
+    pool_timeout=30,  # Default is 30 seconds
+    pool_recycle=1800  # Recycle connections after 30 minutes
+)
 # Create the base class for our models
 Base = declarative_base()
 

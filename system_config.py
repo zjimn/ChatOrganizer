@@ -33,9 +33,10 @@ class SystemConfig:
     def get(self, key: str, default=None):
         return self.CONFIGS.get(key) if self.CONFIGS else default
 
-    def set(self, key: str, value: str) -> None:
+    def set(self, key: str, value: str, update_db = False) -> None:
         self.CONFIGS[key] = value
-        self.config_data_access.upsert_config(key, value)
+        if update_db:
+            self.config_data_access.upsert_config(key, value)
 
     def delete(self, key: str) -> None:
         del self.CONFIGS[key]

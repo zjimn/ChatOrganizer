@@ -4,6 +4,7 @@ from db.database import Session
 from db.database import init_db
 from db.models import ContentData, Config  # 导入 OperationConfig 模型
 from enums import ContentType
+import logging
 
 
 class ConfigDataAccess:
@@ -49,18 +50,18 @@ class ConfigDataAccess:
         """Update an existing configuration or insert a new one."""
         try:
             configs = self.session.query(Config).filter(Config.key == key, Config.delete_time.is_(None)).all()
-            for conf in configs:
-                if conf:
-                    # Update the existing configuration
-                    conf.value = value
-                else:
-                    # Insert a new configuration
-                    conf = Config(key=key, value=value)
-                self.session.add(conf)
-            self.session.commit()
+            if len(configs) == 0:
+                new_config  = Config(key=key, value=value)
+                self.session.add(new_config)
+                self.session.commit()
+            else:
+                for conf  in configs:
+                    conf .value = value
+                    self.session.commit()
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logging.error(f"Failed to upsert configuration for key {key}: {e}")
+            raise e
 
     def delete_config(self, key: str) -> None:
         """Delete a configuration by its key."""

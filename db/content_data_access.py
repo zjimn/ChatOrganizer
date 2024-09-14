@@ -3,6 +3,7 @@ from typing import Optional, List
 from sqlalchemy import Column
 from sqlalchemy.sql.operators import like_op
 
+from db.content_hierarchy_access import ContentHierarchyDataAccess
 from db.database import Session
 from db.database import init_db
 from db.models import ContentData, Dialogue
@@ -21,10 +22,11 @@ class ContentDataAccess:
     def __exit__(self, exc_type, exc_value, traceback):
         self.session.close()
 
-    def insert_data(self, content_type: str, describe: str, content: str, img_path: str) -> int | None:
+    def insert_data(self, content_type: str, content_hierarchy_child_id : int, describe: str, content: str, img_path: str) -> int | None:
         """Insert data into the ContentData table."""
         new_data = ContentData(
             type=content_type,
+            content_hierarchy_child_id=content_hierarchy_child_id,
             describe=describe,
             content=content,
             img_path=img_path
@@ -65,33 +67,43 @@ class ContentDataAccess:
             print(f"An error occurred: {e}")
             return []
 
-    def get_data_by_describe_or_content(self, search: str, content_type) -> List[ContentData]:
+    def get_data_by_describe_or_content(self, search: str, content_type, content_hierarchy_child_id = None) -> List[ContentData]:
         """
         Retrieve all TXT records where describe or content in Dialogue contains the search term,
         and delete_time in ContentData is None.
         """
         try:
+            content_hierarchy_data_access = ContentHierarchyDataAccess()
             # Step 1: Search for Dialogue records with the search term in describe or message
             dialogue_ids = (
                 self.session.query(Dialogue.content_id)
                 .filter(
-                    or_(
-                        Dialogue.message.like(f"%{search}%"),
-                        Dialogue.content_data.has(ContentData.describe.like(f"%{search}%"))
-                    ),
+                    Dialogue.message.like(f"%{search}%"),
                     Dialogue.delete_time.is_(None)  # Filter for non-null delete_time in Dialogue
+
                 )
                 .distinct()  # Ensure unique content_ids
-                .subquery()  # Use as a subquery to join with ContentData
-            )
+            ).all()
+            dialogue_content_ids = []
+            for dialogue in dialogue_ids:
+                dialogue_content_ids.append(dialogue[0])
 
             # Step 2: Query ContentData based on the content_ids retrieved from Dialogue
+            child_ids = []
+            if content_hierarchy_child_id is not None:
+                all_children = content_hierarchy_data_access.get_all_children_by_parent_id(content_hierarchy_child_id)
+                child_ids = {child.child_id for child in all_children}
+
             data_list = (
                 self.session.query(ContentData)
                 .filter(
                     ContentData.type == content_type,  # Filter for TXT type records
-                    ContentData.id.in_(dialogue_ids),  # Match content_ids in ContentData
-                    ContentData.delete_time.is_(None)  # Filter for non-null delete_time in ContentData
+                    ContentData.id.in_(dialogue_content_ids),  # Match content_ids in ContentData
+                    ContentData.delete_time.is_(None),  # Filter for non-null delete_time in ContentData
+                    or_(
+                    ContentData.content_hierarchy_child_id.in_(child_ids),
+                    content_hierarchy_child_id is None
+                    )
                 )
                 .all()
             )
@@ -109,13 +121,15 @@ class ContentDataAccess:
             print(f"An error occurred: {e}")
             return []
 
-    def update_data(self, data_id: int, content_type: str = None, describe: str = None, content: str = None, img_path: str = None) -> None:
+    def update_data(self, data_id: int, content_type: str = None,content_hierarchy_child_id = None, describe: str = None, content: str = None, img_path: str = None) -> None:
         """Update a record by its ID."""
         try:
             data = self.session.query(ContentData).filter(ContentData.id == data_id, ContentData.delete_time.is_(None)).one_or_none()
             if data:
                 if content_type is not None:
                     data.type = content_type
+                if content_hierarchy_child_id is not None:
+                    data.content_hierarchy_child_id = content_hierarchy_child_id
                 if describe is not None:
                     data.describe = describe
                 if content is not None:
@@ -153,6 +167,6 @@ class ContentDataAccess:
 # Example usage:
 if __name__ == "__main__":
     with ContentDataAccess() as cda:
-        cda.insert_data("txt", "example_description", "example_content", "path/to/image.jpg")
+        cda.insert_data("txt", 1,"example_description", "example_content", "path/to/image.jpg")
         all_data = cda.get_all_data()
         print(all_data)

@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import record_manager
 from db.content_data_access import ContentDataAccess
+from util.image_utils import resize_image
 
 
 class DataManagement():
@@ -25,10 +26,9 @@ class DataManagement():
                   foreground=[('active', 'white'),  # 鼠标悬停时的字体颜色
                               ('pressed', 'white')]  # 点击时的字体颜色
                   )
-        self.style.configure('Treeview', background='blue', foreground='white')
-        self.style.map('Treeview', background=[('selected', '#add8e6')])
-        self.style.map('Treeview', foreground=[('selected', 'white')])
-
+        self.style.configure('List.Treeview', background='blue', foreground='white')
+        self.style.map('List.Treeview', background=[('selected', '#e8f0fe')])
+        self.style.map('List.Treeview', foreground=[('selected', '#1a73e8')])
         # Configure tags for row colors
         self.tree.tag_configure('even', background='#f0f0f0', foreground='#505050')
         self.tree.tag_configure('odd', background='white', foreground='#505050')
@@ -54,19 +54,23 @@ class DataManagement():
 
     def delete_selected_item(self):
         selected_item = self.tree.selection()[0]
-        with ContentDataAccess() as cda:
-            values = self.tree.item(selected_item, 'values')
-            cda.delete_data(values[0])
-            self.tree.delete(selected_item)
+        result = messagebox.askyesno("删除节点", "确定需要删除该条数据吗?")
+        if result:
+            with ContentDataAccess() as cda:
+                values = self.tree.item(selected_item, 'values')
+                cda.delete_data(values[0])
+                self.tree.delete(selected_item)
+
+
 
     def edit_selected_item(self):
         selected_item = self.tree.selection()[0]
         print(f"Edit item: {selected_item}")
         # 在此实现编辑功能，例如弹出一个输入对话框
 
-    def update_txt_data_items(self, txt):
+    def update_txt_data_items(self, txt, selected_content_hierarchy_child_id = None):
         self.set_txt_style()
-        records = record_manager.load_txt_records(txt)
+        records = record_manager.load_txt_records(txt, selected_content_hierarchy_child_id)
         for index, record in enumerate(records):
             tag = self.get_tag(index)
             self.tree.insert("", tk.END, values=(
@@ -87,7 +91,7 @@ class DataManagement():
         self.tree.see(last_item)
 
     def update_data_items(self, txt = ""):
-        if self.main_window.type_option == 0:
+        if self.main_window.selected_type_option == 0:
             self.update_txt_data_items(txt)
         else:
             self.update_img_data_items(txt)
@@ -115,8 +119,7 @@ class DataManagement():
         try:
             img_path = record.img_path
             img = Image.open(img_path)
-            img = self.resize_image(img, (80, 80))
-            #img = img.resize((80, 80), Image.Resampling.LANCZOS)
+            img = resize_image(img, (80, 80))
             img_tk = ImageTk.PhotoImage(img)
             tag = self.get_tag(index)
             item = self.tree.insert("", tk.END, text="", image=img_tk,
@@ -135,37 +138,10 @@ class DataManagement():
             print(f"Error adding item with image {prompt}: {e}")
         return item
 
-    def resize_image(self, img, target_size):
-
-        # 获取原始图片的尺寸
-        original_width, original_height = img.size
-
-        # 目标宽度和高度
-        target_width, target_height = target_size
-
-        # 计算新的尺寸
-        ratio = min(target_width / original_width, target_height / original_height)
-        new_width = int(original_width * ratio)
-        new_height = int(original_height * ratio)
-
-        # 调整图片大小
-        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-        # 创建一个目标大小的白色背景图像
-        background = Image.new('RGBA', target_size, (255, 255, 255, 0))
-
-        # 计算位置
-        position = ((target_width - new_width) // 2, (target_height - new_height) // 2)
-
-        # 将调整大小的图片粘贴到背景中
-        background.paste(img, position)
-
-        return background
-
     def set_img_style(self):
 
         # 设置 Treeview 标题的样式
-        self.style.configure('Treeview.Heading',
+        self.style.configure('List.Treeview.Heading',
                         borderwidth=0,  # 设置边框宽度为 0
                         relief='flat',  # 设置为平面样式
                         padding=(10, 20, 10, 20),
@@ -174,7 +150,7 @@ class DataManagement():
                         foreground='#232323'  # 标题字体颜色为白色
                         )
         self.configure_styles()
-        self.style.configure('Treeview',
+        self.style.configure('List.Treeview',
                         rowheight=100, font=("Arial", 12),
                         padding=(5, 10, 5, 10),
                         fieldbackground = 'white',
@@ -195,7 +171,7 @@ class DataManagement():
     def set_txt_style(self):
         self.configure_styles()
         # 设置 Treeview 标题的样式
-        self.style.configure('Treeview.Heading',
+        self.style.configure('List.Treeview.Heading',
                              borderwidth=0,  # 设置边框宽度为 0
                              relief='flat',  # 设置为平面样式
                              padding=(10, 10, 10, 10),
@@ -203,7 +179,7 @@ class DataManagement():
                              background='#f0f0f0',  # 标题背景颜色与内容行保持一致
                              foreground='#232323'  # 标题字体颜色为白色
                              )
-        self.style.configure('Treeview',
+        self.style.configure('List.Treeview',
                              rowheight=50, font=("Arial", 12),
                              padding=(5, 10, 5, 10),
                              fieldbackground='white',
@@ -213,13 +189,13 @@ class DataManagement():
                              )
         self.tree["show"] = "headings"
         self.tree["displaycolumns"] = ("prompt", "content", "create_time")
-        self.style.configure("Treeview", font=("Arial", 12))  # 设置字体为 Arial, 大小为 12
+        self.style.configure("List.Treeview", font=("Arial", 12))  # 设置字体为 Arial, 大小为 12
         #self.set_column_width(self.main_window.output_frame)
         self.clear_treeview()
 
-    def update_img_data_items(self, txt):
+    def update_img_data_items(self, txt, selected_content_hierarchy_child_id = None):
         self.set_img_style()
-        records = record_manager.load_img_records(txt)
+        records = record_manager.load_img_records(txt, selected_content_hierarchy_child_id)
         index = 0
         for record in records:
             item = self.add_item(record, index)
@@ -271,8 +247,6 @@ class DataManagement():
 
                 button = ttk.Button(root, text="Button", command=lambda i=item: self.on_button_click(i))
                 button.place(x=button_x, y=button_y, anchor="nw")
-            else:
-                print(f"Bounding box not found for item {item} in column {last_column}")
 
 
 

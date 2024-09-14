@@ -1,17 +1,24 @@
 import tkinter as tk
 from distutils.command.config import config
 from tkinter import ttk, scrolledtext
+
+from PIL import ImageTk
+
 import config
 from db.config_data_access import ConfigDataAccess
 from db.database import init_db
 from record_manager import load_records, load_txt_records
-from data_management import DataManagement
+from list_data_management import DataManagement
 from enums import ViewType
 from system_config import SystemConfig
+from util import image_utils
 
 
 class MainWindow:
     def __init__(self, root, config_data_access):
+        self.open_folder_resized_icon = None
+        self.closed_folder_resized_icon = None
+        self.dir_tree = None
         self.top_frame = None
         self.left_frame = None
         self.search_input_text = None
@@ -21,8 +28,8 @@ class MainWindow:
         self.output_window_scrollbar = None
         self.tree_frame = None
         self.output_window = None
-        self.type_option = None
-        self.__size_option = None
+        self.selected_type_option = None
+        self.selected_size_option = None
         self.__config_data_access = config_data_access
         self.set_config_from_database()
         # Initialize member variables
@@ -35,9 +42,19 @@ class MainWindow:
         self.bottom_frame = None
         self.input_text = None
         self.submit_button = None
+        self.submit_button_initial_text = "获取回答"
+        self.submit_button_changed_text = "⬛"
+
+        self.submit_button_initial_fg = "black"
+        self.submit_button_initial_bg = "lightgray"
+        self.submit_button_changed_fg = "white"
+        self.submit_button_changed_bg = "blue"
+        self.submit_button_is_changed = False
         self.option_var = None
         self.option_menu = None
         self.size_var = None
+        self.options = ["文字", "图片"]
+        self.size_options = ["1024x1024", "1792x1024", "1024x1792"]
         self.size_menu = None
         self.output_frame = None
         self.output_text = None
@@ -49,17 +66,14 @@ class MainWindow:
         self.create_ui()
 
     def set_config_from_database(self):
-        self.__size_option = int(self.__config_data_access.get_config_value_by_key(config.IMG_SIZE_OPTION_KEY, '0'))
-        self.type_option = int(self.__config_data_access.get_config_value_by_key(config.TYPE_OPTION_KEY, '0'))
+        self.selected_size_option = int(self.__config_data_access.get_config_value_by_key(config.IMG_SIZE_OPTION_KEY, '0'))
+        self.selected_type_option = int(self.__config_data_access.get_config_value_by_key(config.TYPE_OPTION_KEY, '0'))
 
     def create_ui(self):
         """创建主窗口和主要组件。"""
 
         self.style = ttk.Style()
         self.style.theme_use('clam')
-
-
-
 
         # 创建底部框架
         self.bottom_frame = tk.Frame(self.root)
@@ -73,18 +87,20 @@ class MainWindow:
 
         # 创建提交按钮
         self.submit_button = ttk.Button(self.bottom_frame, text="获取回答")
+        self.style.configure("TButton")
+        self.submit_button.config(state=tk.DISABLED)
+        #self.submit_button = ttk.Button(self.bottom_frame, text="⬛")
         self.submit_button.pack(side=tk.RIGHT, padx=(10, 0), anchor=tk.S)
 
         # 创建下拉列表
         self.option_var = tk.StringVar(value="文字")  # 默认值
-        options = ["文字", "图片"]
-        self.option_menu = ttk.OptionMenu(self.bottom_frame, self.option_var, options[self.type_option],*options)
+
+        self.option_menu = ttk.OptionMenu(self.bottom_frame, self.option_var, self.options[self.selected_type_option], *self.options)
         self.option_menu.pack(side=tk.RIGHT, padx=5, anchor=tk.S)
 
         # 创建尺寸选择菜单
         self.size_var = tk.StringVar(value="1024x1024")
-        size_options = ["1024x1024", "1792x1024", "1024x1792"]
-        self.size_menu = ttk.OptionMenu(self.bottom_frame, self.size_var, size_options[self.__size_option], *size_options)
+        self.size_menu = ttk.OptionMenu(self.bottom_frame, self.size_var, self.size_options[self.selected_size_option], *self.size_options)
         self.size_menu.pack(side=tk.RIGHT, padx=5, anchor=tk.S)
         self.size_menu.pack_forget()  # Initially hidden
 
@@ -126,7 +142,7 @@ class MainWindow:
         self.tree_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
         # Create Treeview component
-        self.tree = ttk.Treeview(self.tree_frame, columns=("#0","id", "img", "prompt", "content", "create_time", "operation"))
+        self.tree = ttk.Treeview(self.tree_frame, columns=("#0","id", "img", "prompt", "content", "create_time", "operation"), style='List.Treeview')
         self.tree.heading("#0", text="图片")  # Default column for images
         self.tree.heading("id", text="id")
         self.tree.heading("img", text="图片")
@@ -149,26 +165,15 @@ class MainWindow:
         self.tree.configure(yscrollcommand=self.tree_scrollbar.set)
 
 
+        closed_folder_resized = image_utils.resize_image_by_path(config.CLOSED_FOLDER_IMAGE, (20, 20))
+        self.closed_folder_resized_icon = ImageTk.PhotoImage(closed_folder_resized)
 
+        open_folder_resized = image_utils.resize_image_by_path(config.OPEN_FOLDER_IMAGE, (20, 20))
+        self.open_folder_resized_icon = ImageTk.PhotoImage(open_folder_resized)
 
 
         # 创建 Treeview 控件
-        self.dir_tree = ttk.Treeview(self.left_frame)
-
-        # 添加根节点
-        root_node = self.dir_tree.insert("", "end", text="根节点", open=True)
-
-        # 添加子节点到根节点
-        child1 = self.dir_tree.insert(root_node, "end", text="子节点 1", open=True)
-        child2 = self.dir_tree.insert(root_node, "end", text="子节点 2", open=True)
-
-        # 添加子节点到子节点 1
-        self.dir_tree.insert(child1, "end", text="子节点 1-1")
-        self.dir_tree.insert(child1, "end", text="子节点 1-2")
-
-        # 添加子节点到子节点 2
-        self.dir_tree.insert(child2, "end", text="子节点 2-1")
-
+        self.dir_tree = ttk.Treeview(self.left_frame, show='tree', style='Tree.Treeview')
         # 显示 Treeview 控件
         self.dir_tree.pack(expand=True, fill="both")
 
@@ -184,6 +189,7 @@ class MainWindow:
         self.output_window.geometry(f"{800}x{600}+{x + 50}+{y + 50}")
         # 创建显示框
         self.output_frame = tk.Frame(self.output_window)
+
         # self.output_frame.pack_forget()  # 默认隐藏
         # Create Canvas component
         self.output_window_canvas = tk.Canvas(self.output_frame, bg="#f0f0f0", width=600)
@@ -212,42 +218,7 @@ class MainWindow:
         self.output_image = tk.Label(self.output_window_canvas, bg="#f0f0f0")
         self.output_image.pack_forget()  # 默认隐藏
 
-
-        self.output_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
-
-
-
-
-
-        #self.output_frame_scrollbar = tk.Scrollbar(self.output_frame, orient=tk.VERTICAL, command=self.canvas.yview)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        self.output_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 20))
 
     def set_dialog_images(self, data):
         # Clear previous data

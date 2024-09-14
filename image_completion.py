@@ -15,6 +15,7 @@ class ImageGenerator:
         self.api_version = "2024-02-01"
         self.azure_endpoint = os.getenv("AZURE_ENDPOINT")
         self.api_key = os.getenv("API_KEY")
+        self.cancel = False
 
         # Initialize AzureOpenAI client
         self.client = AzureOpenAI(
@@ -23,7 +24,17 @@ class ImageGenerator:
             api_key=self.api_key
         )
 
+    def clear_history(self):
+        self.token_manager.clear_img_history()
+
+    def add_history_message(self,action, content):
+        self.token_manager.add_img_message(action, content)
+
+    def cancel_request(self):
+        self.cancel = True
+
     def create_image_from_text(self, text, size, n, new=False):
+        self.cancel = False
         # Append the current prompt to the context history
         self.token_manager.add_img_message("Prompt", text)
         # Generate images using the context-inclusive prompt
@@ -46,6 +57,8 @@ class ImageGenerator:
                 image_urls.append(image_url)
         image_urls_string = ', '.join(image_urls)
         self.token_manager.add_img_message("Response", image_urls_string)
+        if self.cancel:
+            return None
         return image_urls
 
 

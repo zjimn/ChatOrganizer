@@ -9,6 +9,7 @@ from util.token_management import TokenManager
 
 class TextGenerator:
     def __init__(self):
+        self.cancel = None
         load_dotenv()
         self.token_manager = TokenManager(config.TOKEN_LIMIT)
         # Get configuration from environment variables
@@ -23,9 +24,19 @@ class TextGenerator:
             api_key=self.api_key
         )
 
+    def clear_history(self):
+        self.token_manager.clear_txt_history()
+
+    def add_history_message(self,role, message):
+        self.token_manager.add_txt_message(role, message)
+
+    def cancel_request(self):
+        self.cancel = True
+
     def generate_gpt_completion(self, user_input, new=False):
+        self.cancel = False
         # Append the user input to the conversation history
-        self.token_manager.add_txt_message(config.USER_NAME, user_input)
+        self.token_manager.add_txt_message(config.DISPLAY_USER_NAME, user_input)
 
         # Manage and trim the conversation history if necessary
         # manage_history()
@@ -41,8 +52,9 @@ class TextGenerator:
             response_content = completion.choices[0].message.content
 
             # Append the model's response to the conversation history
-            self.token_manager.add_txt_message(config.ASSISTANT_NAME, response_content)
-
+            self.token_manager.add_txt_message(config.DISPLAY_ASSISTANT_NAME, response_content)
+            if self.cancel:
+                return None
             return response_content
         except Exception as e:
             print(f"An error occurred: {e}")

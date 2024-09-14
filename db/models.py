@@ -16,9 +16,12 @@ class ContentData(Base):
     img_path = Column(String)
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)  # Field for soft delete
+    content_hierarchy_child_id = Column(Integer, nullable=True)  # Field to link to ContentHierarchy's child_id
 
     # Enable cascading deletes on the dialogues relationship
-    dialogues = relationship('Dialogue', order_by='Dialogue.id', back_populates='content_data', cascade='all, delete-orphan')
+    dialogues = relationship('Dialogue', order_by='Dialogue.id', back_populates='content_data',
+                             cascade='all, delete-orphan')
+
 
 class Dialogue(Base):
     __tablename__ = 'dialogue'
@@ -33,6 +36,17 @@ class Dialogue(Base):
 
     # Relationship to ContentData
     content_data = relationship('ContentData', back_populates='dialogues')
+
+class ContentHierarchy(Base):
+    __tablename__ = 'content_hierarchy'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String)
+    parent_id = Column(Integer, nullable=True)  # Parent content ID, can be null for root items
+    child_id = Column(Integer, nullable=False)  # Child content ID
+    level = Column(Integer, nullable=False, default=0)  # Level in the hierarchy
+    create_time = Column(DateTime, default=datetime.now)  # 创建时间
+    delete_time = Column(DateTime, nullable=True, default=None)  # Field for soft delete
 
 class Config(Base):
     __tablename__ = 'config'

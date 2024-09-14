@@ -5,3 +5,7 @@ TYPE_OPTION_IMG_KEY = '1'
 TOKEN_LIMIT = 8000
 USER_NAME = "user"
 ASSISTANT_NAME = "assistant"
+DISPLAY_USER_NAME = "user"
+DISPLAY_ASSISTANT_NAME = "assistant"
+OPEN_FOLDER_IMAGE = "res/icons/folder.png"   # Path to open folder icon
+CLOSED_FOLDER_IMAGE = "res/icons/folder.png" # Path to closed folder icon
