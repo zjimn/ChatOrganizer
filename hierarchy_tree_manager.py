@@ -6,7 +6,7 @@ from typing import Optional
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 
 
-class ContentHierarchyTreeManager:
+class HierarchyTreeManager:
     def __init__(self, main_window):
         self.current_item = None
         self.pre_selected_item = None
@@ -17,6 +17,7 @@ class ContentHierarchyTreeManager:
         self.style = ttk.Style()
         self.set_style()
         self.tree_view.bind("<Motion>", self.on_mouse_move)
+        self.tree_view.bind("<Leave>", self.on_mouse_leave)
 
         # 绑定事件
         self.tree_view.bind('<ButtonPress-1>', self.on_item_press)
@@ -129,6 +130,9 @@ class ContentHierarchyTreeManager:
             return
 
         new_node_name = simpledialog.askstring("输入", "输入新增的节点名称:")
+        if new_node_name is None:
+            # 用户点击了取消或关闭了对话框
+            return
         if new_node_name:
             new_item_id = self._generate_new_item_id()
             self.tree_view.item(selected_item, tags=("normal",))
@@ -200,6 +204,7 @@ class ContentHierarchyTreeManager:
 
         self.tree_view.selection_set(item_id)
         self.tree_view.focus(item_id)
+        self.tree_view.see(item_id)
 
     def expand_ancestors(self, item_id: int):
         """Expand all ancestor nodes of the given item."""
@@ -387,6 +392,6 @@ if __name__ == "__main__":
     tree = ttk.Treeview(root, show='tree')
     tree.pack(expand=True, fill='both')
 
-    manager = ContentHierarchyTreeManager()
+    manager = HierarchyTreeManager()
     manager.update_tree_from_db()
     root.mainloop()

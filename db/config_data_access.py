@@ -80,5 +80,3 @@ class ConfigDataAccess:
 if __name__ == "__main__":
     with ConfigDataAccess() as cda:
         cda.insert_config("example_key", "example_value")
-        config = cda.get_config_value_by_key("example_key")
-        print(config)

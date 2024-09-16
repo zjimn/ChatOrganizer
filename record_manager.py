@@ -1,9 +1,11 @@
 import json
 import os
 from datetime import datetime
+from typing import Optional
 
 from db.content_data_access import ContentDataAccess
 from db.dialogue_data_access import DialogueDataAccess
+from db.models import ContentData
 from enums import ContentType
 
 
@@ -20,10 +22,28 @@ def load_records(file_path):
         data = json.load(file)
     return data
 
-def load_txt_records(txt, selected_content_hierarchy_child_id):
+def load_txt_records(txt = "", selected_content_hierarchy_child_id = None, content_id = None):
     with ContentDataAccess() as cda:
         all_data = cda.get_data_by_describe_or_content(txt, ContentType.TXT.value, selected_content_hierarchy_child_id)
     return all_data
+
+def load_data(content_id) -> Optional[ContentData]:
+    content = load_txt_dialogs_with_merge(content_id)
+    with ContentDataAccess() as cda:
+            data = cda.get_data_by_id(content_id)
+            describe = data.describe
+            new_data = ContentData(
+                id=data.id,
+                type=data.type,
+                describe=describe,
+                content=content,
+                dialogues=data.dialogues
+            )
+            return new_data
+
+def update_data(content_id, type, describe, content):
+    with ContentDataAccess() as cda:
+            cda.update_data(content_id, type, None, describe, content)
 
 def load_txt_dialogs_with_merge(content_id):
     with DialogueDataAccess() as dda:
@@ -43,7 +63,7 @@ def load_img_dialogs(content_id):
 def merge_txt_content(data):
     return "\n".join(f"{item.role}: {item.message}\n" for item in data)
 
-def load_img_records(txt, selected_content_hierarchy_child_id):
+def load_img_records(txt = "", selected_content_hierarchy_child_id = None, content_id = None):
     with ContentDataAccess() as cda:
         all_data = cda.get_data_by_describe_or_content(txt, ContentType.IMG.value, selected_content_hierarchy_child_id)
     return all_data

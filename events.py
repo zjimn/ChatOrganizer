@@ -13,7 +13,7 @@ import config
 import record_manager
 import system_config
 from config import TYPE_OPTION_KEY, IMG_SIZE_OPTION_KEY, ASSISTANT_NAME
-from db.models import Dialogue
+from db.models import Dialogue, ContentData
 from image_completion import ImageGenerator
 from record_manager import load_txt_records
 from enums import ViewType
@@ -23,7 +23,7 @@ from system_config import SystemConfig
 from datetime import datetime
 from typing import Optional
 from PIL import Image, ImageDraw, ImageTk, ImageFont
-from list_data_management import DataManagement  # Import the class
+from list_data_manager import ListDataManager  # Import the class
 from pathlib import Path
 import util.token_management
 import tkinter.font as tkfont
@@ -36,6 +36,7 @@ from util.token_management import TokenManager
 
 class EventManager:
     def __init__(self, root, main_window, config_data_access, system_config, content_hierarchy_tree_manager):
+        self.output_window_canvas_scroll_enabled = None
         self.focus_dialog_index = None
         self.dialog_frames = []
         self.dialog_labels = []
@@ -200,7 +201,7 @@ class EventManager:
     def show_tree(self):
         view_type = self.main_window.view_type
         txt = self.main_window.search_input_text.get()
-        data_manager = DataManagement(self.main_window)
+        data_manager = ListDataManager(self.main_window)
         selected_item_id = self.content_hierarchy_tree_manager.get_selected_item_id()
         if view_type == ViewType.TXT:
             data_manager.set_column_width(self.main_window.output_frame)
@@ -208,6 +209,19 @@ class EventManager:
         elif view_type == ViewType.IMG:
             data_manager.set_column_width(self.main_window.output_frame)
             data_manager.update_img_data_items(txt, selected_item_id)
+        self.main_window.data_manager = data_manager
+
+    def insert_tree_item(self, content_id):
+        view_type = self.main_window.view_type
+        txt = self.main_window.search_input_text.get()
+        data_manager = ListDataManager(self.main_window)
+        selected_item_id = self.content_hierarchy_tree_manager.get_selected_item_id()
+        if view_type == ViewType.TXT:
+            data_manager.set_column_width(self.main_window.output_frame)
+            data_manager.insert_txt_data_item(content_id)
+        elif view_type == ViewType.IMG:
+            data_manager.set_column_width(self.main_window.output_frame)
+            data_manager.insert_img_data_item(content_id)
         self.main_window.data_manager = data_manager
 
     def download_img(self, url):
@@ -231,7 +245,7 @@ class EventManager:
                 message=prompt,
                 img_path=None
             )
-            self.set_dialog_images([new_data], True, False)
+            self.set_dialog_images([new_data], True, False, self.session_id is None)
             self.root.after(100, lambda: self.main_window.output_window_canvas.yview_moveto(1.0))
         else:
             self.set_output_text_default_background()
@@ -250,10 +264,12 @@ class EventManager:
             file_path = Path(self.system_config.get("image_dir_path")) / filename
             img = self.download_img(url)
             img.save(file_path)
+            dialogue_data = Dialogue(
+                message=prompt,
+                img_path=file_path
+            )
+            self.set_dialog_images([dialogue_data], True, True)
             self.session_id = record_manager.save_img_record(self.session_id, selected_item_id, prompt, str(file_path))
-
-            dialogs = record_manager.load_img_dialogs(self.session_id)
-            self.set_dialog_images(dialogs, True, True)
 
         else:
             self.set_output_text_default_background()
@@ -265,7 +281,7 @@ class EventManager:
             self.show_text_append(self.main_window, None, answer, True)
             self.session_id = record_manager.save_txt_record(self.session_id, selected_item_id, prompt, answer)
         if show_tree:
-            self.show_tree()
+            self.insert_tree_item(self.session_id)
         self.set_submit_button_state(True)
         self.set_prompt_input_focus()
 
@@ -285,14 +301,15 @@ class EventManager:
         for widget in self.main_window.output_window_scrollbar_frame.winfo_children():
             widget.destroy()
 
-    def set_dialog_images(self, data, append = False, only_img = False):
+    def set_dialog_images(self, data, append = False, only_img = False, first = False):
 
         self.main_window.output_window_canvas.yview_moveto(0)
         self.main_window.output_text.pack_forget()
         self.main_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.Y, expand=True)
         self.main_window.output_window.deiconify()  # 弹出窗口
         self.main_window.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.clear_output_window_canvas_data()
+        if first or not append:
+            self.clear_output_window_canvas_data()
         # 创建显示区域的 Frame
         for index, item in enumerate(data):
             image_path = item.img_path
@@ -324,7 +341,7 @@ class EventManager:
                 bg='#e8eaed'  # Set background color
             )
 
-            if (image_path is None or image_path == "") and not only_img:
+            if image_path is None or image_path == "":
                 font_height = self.calculate_font_height(font_name, font_size)
                 vertical_offset = (frame_height + font_height) / 2
                 text_label.place(relx=0.01, y=vertical_offset, anchor=tk.W)
@@ -449,9 +466,19 @@ class EventManager:
             submit_button.state(['pressed'])  # 按钮按下状态
             # 调用 on_submit 函数
 
+
     def on_key_release(self, event, main_window, root):
+        # 打印当前状态以调试问题
+        root.update_idletasks()
         """处理键盘按下事件，触发按钮点击事件并调用 on_submit。"""
-        if event.keysym == 'Return' and event.state & 0x20000 == 0 and not self.main_window.submit_button_is_changed:
+        # 使用 after 方法稍微延迟状态检查，确保 Tkinter 更新完状态
+        root.after(100, self.check_and_submit, event, main_window)
+
+    def check_and_submit(self, event, main_window):
+        """检查按钮状态并处理提交。"""
+        s = "state"
+        state = self.main_window.submit_button["state"]
+        if event.keysym == 'Return' and event.state & 0x20000 == 0 and not self.main_window.submit_button_is_changed and str(state) == "normal":
             main_window.submit_button.state(['!pressed'])  # 取消按钮按下状态
             self.thread_submit()
 
@@ -502,10 +529,18 @@ class EventManager:
             self.update_dialog_images(self.focus_dialog_index)
 
     def on_output_window_canvas_mouse_wheel(self, event):
+        if not self.output_window_canvas_scroll_enabled:
+            return
         if self.focus_dialog_index is not None or self.system_config.get(TYPE_OPTION_KEY) == config.TYPE_OPTION_TXT_KEY: # only for img canvas and img focus
             return
         # Adjust the scroll speed by multiplying the delta value (on Windows, it's usually 120 per wheel notch)
         self.main_window.output_window_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def on_enter_output_window_canvas_canvas(self, event):
+        self.output_window_canvas_scroll_enabled = True
+
+    def on_leave_output_window_canvas_canvas(self, event):
+        self.output_window_canvas_scroll_enabled = False
 
     def adjust_option_menu_width(self):
         """调整下拉列表宽度以匹配提交按钮的宽度。"""
@@ -615,7 +650,8 @@ class EventManager:
         if self.main_window.input_text.get("1.0", tk.END).strip():
             self.main_window.submit_button.config(state=tk.NORMAL)
         else:
-            self.main_window.submit_button.config(state=tk.DISABLED)
+            if not self.main_window.submit_button_is_changed:
+                self.main_window.submit_button.config(state=tk.DISABLED)
 
 
     def bind_events(self):
@@ -654,6 +690,8 @@ class EventManager:
         self.main_window.output_text.vbar.bind("<B1-Motion>", lambda event: self.on_output_text_scroll_drag(event))
         self.main_window.output_text.bind("<MouseWheel>", lambda event: self.on_output_text_scroll_drag(event))
         self.main_window.root.protocol("WM_DELETE_WINDOW", self.on_close_main_window)
+        self.main_window.output_window_canvas.bind("<Enter>", self.on_enter_output_window_canvas_canvas)
+        self.main_window.output_window_canvas.bind("<Leave>", self.on_leave_output_window_canvas_canvas)
 
         # 绑定 Text 小部件的事件
         self.main_window.input_text.bind("<KeyRelease>", self.check_input_text)

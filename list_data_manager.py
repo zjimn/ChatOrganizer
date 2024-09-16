@@ -1,18 +1,21 @@
+import re
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, DISABLED, NORMAL
 from PIL import Image, ImageTk
 import record_manager
 from db.content_data_access import ContentDataAccess
+from list_editor import ListEditor
 from util.image_utils import resize_image
 
 
-class DataManagement():
+class ListDataManager:
     def __init__(self, main_window):
         # Create Treeview
         self.tree = main_window.tree
         self.main_window = main_window
         # Initialize style and image list
         self.style = ttk.Style()
+        self.list_editor = ListEditor(self.main_window.root, self.tree)
         self.image_list = []
         # 创建右键菜单
         self.context_menu = tk.Menu(self.tree, tearoff=0)
@@ -39,37 +42,32 @@ class DataManagement():
         # 绑定列宽度变化事件
         self.tree.bind('<Configure>', self.on_tree_resize)
 
-        self.context_menu.add_command(label="编辑", command=self.edit_selected_item)
-        self.context_menu.add_command(label="删除", command=self.delete_selected_item)
-
-        # 绑定右键单击事件
-        self.tree.bind("<Button-3>", self.show_context_menu)
-
     def show_context_menu(self, event):
         # 弹出菜单项
         iid = self.tree.identify_row(event.y)
         if iid:
-            self.tree.selection_set(iid)
+            selected_item_ids = self.tree.selection()
+            if len(selected_item_ids) <= 1:
+                self.context_menu.entryconfig(0, state=NORMAL)
+                self.tree.selection_set(iid)
+            else:
+                self.context_menu.entryconfig(0, state=DISABLED)
             self.context_menu.post(event.x_root, event.y_root)
 
-    def delete_selected_item(self):
-        selected_item = self.tree.selection()[0]
-        result = messagebox.askyesno("删除节点", "确定需要删除该条数据吗?")
-        if result:
-            with ContentDataAccess() as cda:
-                values = self.tree.item(selected_item, 'values')
-                cda.delete_data(values[0])
-                self.tree.delete(selected_item)
 
-
-
-    def edit_selected_item(self):
-        selected_item = self.tree.selection()[0]
-        print(f"Edit item: {selected_item}")
-        # 在此实现编辑功能，例如弹出一个输入对话框
+    def get_first_50_chars(self, text):
+        if text is None:
+            return ""
+        # 将所有的换行符替换为空格，去掉空白行
+        text = re.sub(r'\s*\n\s*', ' ', text)
+        # 使用正则表达式替换连续的多个空格为一个空格
+        text = re.sub(r'\s+', ' ', text).strip()
+        # 返回前 50 个字符
+        return text[:50]
 
     def update_txt_data_items(self, txt, selected_content_hierarchy_child_id = None):
         self.set_txt_style()
+        self.clear_treeview()
         records = record_manager.load_txt_records(txt, selected_content_hierarchy_child_id)
         for index, record in enumerate(records):
             tag = self.get_tag(index)
@@ -78,8 +76,8 @@ class DataManagement():
                 "",
                 "",
                 record.describe,
-                record.content,
-                record.create_time,
+                self.get_first_50_chars(record.content),
+                record.create_time.strftime('%Y-%m-%d %H:%M'),
             ), tags=(tag,))
         self.tree.update_idletasks()
         self.tree.update()
@@ -89,6 +87,29 @@ class DataManagement():
         last_item = self.tree.get_children()[-1]
         # Scroll to the last row
         self.tree.see(last_item)
+
+    def insert_txt_data_item(self, content_id):
+        self.set_txt_style()
+        records = record_manager.load_txt_records(content_id=content_id)
+        last_item = None
+        for index, record in enumerate(records):
+            tag = self.get_tag(index)
+            last_item = self.tree.insert("", tk.END, values=(
+                record.id,
+                "",
+                "",
+                record.describe,
+                self.get_first_50_chars(record.content),
+                record.create_time.strftime('%Y-%m-%d %H:%M'),
+            ), tags=(tag,))
+        #self.tree.update_idletasks()
+        #self.tree.update()
+        # Scroll to the last row
+        if last_item:
+            self.tree.see(last_item)
+            self.tree.focus(last_item)
+            self.tree.selection_set(last_item)
+
 
     def update_data_items(self, txt = ""):
         if self.main_window.selected_type_option == 0:
@@ -129,7 +150,7 @@ class DataManagement():
                                  "",
                                  record.describe,
                                  record.img_path,
-                                 record.create_time,
+                                 record.create_time.strftime('%Y-%m-%d %H:%M'),
                              ), tags=(tag,))
 
             self.image_list.append(img_tk)
@@ -164,11 +185,9 @@ class DataManagement():
         self.tree["show"] = "tree headings"
         self.tree["displaycolumns"] = ("prompt", "create_time")
         #self.set_column_width(self.main_window.output_frame)
-        self.clear_treeview()
-        self.image_list.clear()
 
 
-    def set_txt_style(self):
+    def set_txt_style(self, clean = True):
         self.configure_styles()
         # 设置 Treeview 标题的样式
         self.style.configure('List.Treeview.Heading',
@@ -191,14 +210,16 @@ class DataManagement():
         self.tree["displaycolumns"] = ("prompt", "content", "create_time")
         self.style.configure("List.Treeview", font=("Arial", 12))  # 设置字体为 Arial, 大小为 12
         #self.set_column_width(self.main_window.output_frame)
-        self.clear_treeview()
+
 
     def update_img_data_items(self, txt, selected_content_hierarchy_child_id = None):
         self.set_img_style()
+        self.clear_treeview()
+        self.image_list.clear()
         records = record_manager.load_img_records(txt, selected_content_hierarchy_child_id)
         index = 0
         for record in records:
-            item = self.add_item(record, index)
+            self.add_item(record, index)
             index += 1
         self.tree.update_idletasks()  # Force update to ensure styles are applied
         self.tree.update()
@@ -208,6 +229,22 @@ class DataManagement():
         last_item = self.tree.get_children()[-1]
         # Scroll to the last row
         self.tree.see(last_item)
+
+    def insert_img_data_item(self, content_id):
+        self.set_img_style()
+        records = record_manager.load_img_records(content_id=content_id)
+        index = 0
+        last_item = None
+        for record in records:
+            last_item = self.add_item(record, index)
+            index += 1
+        #self.tree.update_idletasks()  # Force update to ensure styles are applied
+        #self.tree.update()
+        # Scroll to the last row
+        if last_item:
+            self.tree.see(last_item)
+            self.tree.focus(last_item)
+            self.tree.selection_set(last_item)
 
     def add_buttons_to_tree_item(self, root):
         # 移除之前添加的按钮

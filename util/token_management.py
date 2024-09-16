@@ -75,5 +75,4 @@ class TokenManager:
 if __name__ == "__main__":
     token_manager = TokenManager(20)
     token_manager.add_txt_message("user", "Tell m.")
-    token_manager.add_txt_message("usdfdfder", "Whaikdddddddddddddddfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdddddddddddddddddddddddddddddddde?")
     print(token_manager.get_manage_txt_history())

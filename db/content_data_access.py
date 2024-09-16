@@ -1,6 +1,8 @@
 from typing import Optional, List
 
 from sqlalchemy import Column
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.operators import like_op
 
 from db.content_hierarchy_access import ContentHierarchyDataAccess
@@ -41,11 +43,14 @@ class ContentDataAccess:
             return None
 
     def get_data_by_id(self, data_id: int) -> Optional[ContentData]:
-        """Retrieve a record by its ID."""
+        """Retrieve a ContentData record by its ID, including associated dialogues."""
         try:
-            data = self.session.query(ContentData).filter(ContentData.id == data_id, ContentData.delete_time.is_(None)).one_or_none()
+            data = self.session.query(ContentData).options(joinedload(ContentData.dialogues)).filter(
+                ContentData.id == data_id,
+                ContentData.delete_time.is_(None)
+            ).one_or_none()
             return data
-        except Exception as e:
+        except SQLAlchemyError as e:
             print(f"An error occurred: {e}")
             return None
 
@@ -67,7 +72,7 @@ class ContentDataAccess:
             print(f"An error occurred: {e}")
             return []
 
-    def get_data_by_describe_or_content(self, search: str, content_type, content_hierarchy_child_id = None) -> List[ContentData]:
+    def get_data_by_describe_or_content(self, search: str, content_type, content_hierarchy_child_id = None, content_id = None) -> List[ContentData]:
         """
         Retrieve all TXT records where describe or content in Dialogue contains the search term,
         and delete_time in ContentData is None.
@@ -75,12 +80,16 @@ class ContentDataAccess:
         try:
             content_hierarchy_data_access = ContentHierarchyDataAccess()
             # Step 1: Search for Dialogue records with the search term in describe or message
+
             dialogue_ids = (
                 self.session.query(Dialogue.content_id)
                 .filter(
                     Dialogue.message.like(f"%{search}%"),
-                    Dialogue.delete_time.is_(None)  # Filter for non-null delete_time in Dialogue
-
+                    Dialogue.delete_time.is_(None),  # Filter for non-null delete_time in Dialogue
+                    or_(
+                        content_id is None,
+                        Dialogue.content_id == content_id
+                    )
                 )
                 .distinct()  # Ensure unique content_ids
             ).all()

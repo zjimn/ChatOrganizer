@@ -8,7 +8,7 @@ import config
 from db.config_data_access import ConfigDataAccess
 from db.database import init_db
 from record_manager import load_records, load_txt_records
-from list_data_management import DataManagement
+from list_data_manager import ListDataManager
 from enums import ViewType
 from system_config import SystemConfig
 from util import image_utils
@@ -110,27 +110,31 @@ class MainWindow:
         # 创建底部框架
         self.top_frame = tk.Frame(self.root)
 
-        self.top_frame.pack(side=tk.TOP, fill=tk.BOTH,  expand=True, padx=20, pady=(20, 5))
+        #self.top_frame.pack(side=tk.TOP, fill=tk.BOTH,  expand=True, padx=20, pady=(20, 5))
 
-
+        paned_window = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, sashwidth=10)
+        paned_window.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 5))
 
 
 
         # 创建底部框架
-        self.right_frame = tk.Frame(self.top_frame)
+        self.right_frame = tk.Frame(paned_window)
         #self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=20, expand=True, pady=(20, 5))
         #self.right_frame.grid(row=0, column=0, sticky="ns")
         self.right_frame.grid(row=0, column=1, sticky="nswe")
 
         # 创建底部框架
-        self.left_frame = tk.Frame(self.top_frame)
-        #self.left_frame.grid(row=0, column=0, sticky="ns")
+        self.left_frame = tk.Frame(paned_window)
+        self.left_frame.grid(row=0, column=0, sticky="ns")
         self.left_frame.grid(row=0, column=0, sticky="nswe", padx=(0, 10))  # 使用 grid 放置
         #self.left_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=20, expand=True, pady=(20, 5))
 
-        self.top_frame.grid_columnconfigure(0, weight=1)  # 左侧框架占 1/3
-        self.top_frame.grid_columnconfigure(1, weight=5)  # 右侧框架占 2/3
-        self.top_frame.grid_rowconfigure(0, weight=1)
+        paned_window.add(self.left_frame, stretch="always")
+        paned_window.add(self.right_frame, stretch="always")
+
+        #self.top_frame.grid_columnconfigure(0, weight=1)  # 左侧框架占 1/3
+        #self.top_frame.grid_columnconfigure(1, weight=5)  # 右侧框架占 2/3
+        #self.top_frame.grid_rowconfigure(0, weight=1)
         # 创建输入框
         self.style.configure("Custom.TEntry", padding=(3, 5))
         self.search_input_text = ttk.Entry(self.right_frame, width=50, style="Custom.TEntry", textvariable=self.search_input_entry_text)
@@ -181,6 +185,7 @@ class MainWindow:
 
         self.output_window = tk.Toplevel(self.root)
         self.output_window.title("")
+        self.output_window.wm_attributes("-topmost", 1)
         self.output_window.withdraw()
         # 获取主窗口的位置
         x = self.root.winfo_x()
