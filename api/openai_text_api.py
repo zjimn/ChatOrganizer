@@ -2,16 +2,16 @@ import os
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 
-import config
+from config import constant
 from util.token_management import TokenManager
 
 # Load environment variables
 
-class TextGenerator:
+class OpenaiTextApi:
     def __init__(self):
         self.cancel = None
         load_dotenv()
-        self.token_manager = TokenManager(config.TOKEN_LIMIT)
+        self.token_manager = TokenManager(constant.TOKEN_LIMIT)
         # Get configuration from environment variables
         self.deployment_name = os.getenv("DEPLOYMENT_NAME")
         self.api_version = os.getenv("API_VERSION")
@@ -63,7 +63,7 @@ class TextGenerator:
 
 # Example usage
 if __name__ == "__main__":
-    txt_generator = TextGenerator()
+    txt_generator = OpenaiTextApi()
     response1 = txt_generator.generate_gpt_completion("Tell me a joke.")
     print(f"Assistant: {response1}")
     response2 = txt_generator.generate_gpt_completion("What is the weather like?")

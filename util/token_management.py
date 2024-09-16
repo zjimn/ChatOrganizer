@@ -1,4 +1,4 @@
-from config import TOKEN_LIMIT
+from config.constant import TOKEN_LIMIT
 
 
 # Define the token limit (adjust based on the model's context window)

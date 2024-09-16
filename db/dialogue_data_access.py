@@ -3,7 +3,6 @@ from typing import Optional, List
 from db.database import Session
 from db.database import init_db
 from db.models import Dialogue
-from enums import ContentType  # 如果需要的话
 
 class DialogueDataAccess:
     def __init__(self):

@@ -1,4 +1,4 @@
-# system_config.py
+# app_config.py
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -7,25 +7,27 @@ from pathlib import Path
 from db.config_data_access import ConfigDataAccess
 
 
-class SystemConfig:
+class AppConfig:
     """A class to manage system configuration variables stored in a database."""
 
     CONFIGS = {
-        'image_dir_path':  str(Path("data") / "images")
+        'image_dir_path':  str(Path("../data") / "images")
     }
 
     def __init__(self):
-        self.config_data_access = ConfigDataAccess()
-        # Initialize default configs if the table is empty
+        # Initialize default config if the table is empty
         self.initialize_default_configs()
 
     def initialize_default_configs(self):
         """Initialize default configuration values if not already present."""
-        configs = self.config_data_access.get_all_configs()
+        with ConfigDataAccess() as cda:
+            configs = cda.get_all_configs()
         existing_keys = {config.key for config in configs}
         for key, value in self.CONFIGS.items():
             if key not in existing_keys:
-                self.config_data_access.upsert_config(key, value)
+                with ConfigDataAccess() as cda:
+                    cda.upsert_config(key, value)
+
 
         for item in configs:
             self.CONFIGS[item.key] = item.value
@@ -36,7 +38,8 @@ class SystemConfig:
     def set(self, key: str, value: str, update_db = False) -> None:
         self.CONFIGS[key] = value
         if update_db:
-            self.config_data_access.upsert_config(key, value)
+            with ConfigDataAccess() as cda:
+                cda.upsert_config(key, value)
 
     def delete(self, key: str) -> None:
         del self.CONFIGS[key]

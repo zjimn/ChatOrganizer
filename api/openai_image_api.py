@@ -2,12 +2,12 @@ import os
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 
-from config import TOKEN_LIMIT
+from config.constant import TOKEN_LIMIT
 from util.token_management import TokenManager
 
 # Load environment variables
 
-class ImageGenerator:
+class OpenaiImageApi:
     def __init__(self):
         load_dotenv()
         self.token_manager = TokenManager(TOKEN_LIMIT)
@@ -65,6 +65,6 @@ class ImageGenerator:
 
 # Example usage
 if __name__ == "__main__":
-    img_generator = ImageGenerator()
-    img_generator.create_image_from_text("A scenic view of mountains", "1024x1024", 1)
+    img_generator = OpenaiImageApi()
+    img_generator.create_image_from_text("A scenic ui of mountains", "1024x1024", 1)
     img_generator.create_image_from_text("Add a sunset to the scene", "1024x1024", 1)

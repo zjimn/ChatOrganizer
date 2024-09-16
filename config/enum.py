@@ -1,4 +1,4 @@
-# enums.py
+# enum.py
 from enum import Enum
 
 class ViewType(Enum):

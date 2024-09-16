@@ -1,12 +1,10 @@
-from pkgutil import get_data
 from tkinter import *
 from tkinter import messagebox, ttk
 
 import tkinter as tk
 
 from db.content_data_access import ContentDataAccess
-from db.models import ContentData
-from record_manager import load_data, update_data
+from service.content_service import ContentService
 
 
 class ListEditor:
@@ -14,7 +12,6 @@ class ListEditor:
         self.item_data = None
         self.parent = parent
         self.listbox = Listbox(parent)
-        #self.listbox.pack(padx=20, pady=20)
         self.style = ttk.Style()
         self.style.theme_use('clam')
         self.tree = tree
@@ -31,6 +28,7 @@ class ListEditor:
         self.last_event = None
 
         self.enable_edit_button = False
+        self.content_service = ContentService()
 
     def show_context_menu(self, event):
         # 弹出菜单项
@@ -49,11 +47,11 @@ class ListEditor:
         self.enable_edit_button = enable
 
     def get_data(self, content_id):
-        data = load_data(content_id)
+        data = self.content_service.load_data(content_id)
         return data
 
     def update_item_data(self, content_id, type, describe, content):
-        update_data(content_id, type, describe, content)
+        self.content_service.update_data(content_id, type, describe, content)
 
 
     def modify_selected_item(self):

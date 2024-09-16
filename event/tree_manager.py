@@ -6,12 +6,13 @@ from typing import Optional
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 
 
-class HierarchyTreeManager:
-    def __init__(self, main_window):
+class TreeManager:
+    def __init__(self, root, dir_tree):
+        self.root = root
         self.current_item = None
         self.pre_selected_item = None
-        self.main_window = main_window
-        self.tree_view = main_window.dir_tree
+        self.dir_tree = dir_tree
+        self.tree_view = dir_tree.tree
         self.update_tree_from_db()
         self._setup_context_menu()
         self.style = ttk.Style()
@@ -86,10 +87,8 @@ class HierarchyTreeManager:
             if result:
                 # Find the previous sibling or parent to select after deletion
                 previous_item_id = self.get_previous_sibling_or_parent(selected_item)
-
                 # Delete the selected item
                 self.delete_item(selected_item)
-
                 # Automatically select the previous item if it exists
                 if previous_item_id:
                     self.tree_view.selection_set(previous_item_id)
@@ -180,7 +179,7 @@ class HierarchyTreeManager:
         """设置焦点至顶层第一个项（如果没有选中项的话）"""
         # 检查是否已有选中的项
         selected_items = self.tree_view.selection()
-        if not selected_items:
+        if not selected_items and len(self.tree_view.get_children()) > 0:
             # 如果没有选中的项，则获取顶层第一个子项
             first_item = self.tree_view.get_children()[0]
             # 选择并设置焦点
@@ -190,7 +189,7 @@ class HierarchyTreeManager:
     def _insert_tree_item(self, parent_id: Optional[int], item_id: int, text: str):
         """Insert an item into the Treeview."""
         parent_item = parent_id if parent_id else ""
-        self.tree_view.insert(parent_item, 'end', iid=item_id, text="  " + text, image = self.main_window.closed_folder_resized_icon)
+        self.tree_view.insert(parent_item, 'end', iid=item_id, text="  " + text, image = self.dir_tree.closed_folder_resized_icon)
 
     def insert_item(self, parent_id: Optional[int], item_id: int, name: str, level: int):
         """Insert an item into the Treeview and database."""
@@ -323,14 +322,14 @@ class HierarchyTreeManager:
             # 开始拖动，创建浮动标签
             item_text = self.tree_view.item(self.dragged_item, 'text')
             if item_text:  # 确保 item_text 不为空
-                self.floating_label = tk.Label(self.main_window.root, text=item_text, bg='lightgrey', relief='flat')
+                self.floating_label = tk.Label(self.root, text=item_text, bg='lightgrey', relief='flat')
                 self.start_drag = True  # 更新拖动状态
 
         # 拖动过程中移动浮动标签
         if self.floating_label and self.start_drag:
             # 更新浮动标签的位置
-            self.floating_label.place(x=event.x_root - self.main_window.root.winfo_rootx() + 10,
-                                      y=event.y_root - self.main_window.root.winfo_rooty() + 10)
+            self.floating_label.place(x=event.x_root - self.root.winfo_rootx() + 10,
+                                      y=event.y_root - self.root.winfo_rooty() + 10)
 
     def on_drop(self, event):
         # 获取目标位置
@@ -392,6 +391,6 @@ if __name__ == "__main__":
     tree = ttk.Treeview(root, show='tree')
     tree.pack(expand=True, fill='both')
 
-    manager = HierarchyTreeManager()
+    manager = TreeManager()
     manager.update_tree_from_db()
     root.mainloop()

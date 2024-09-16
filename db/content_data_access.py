@@ -9,7 +9,6 @@ from db.content_hierarchy_access import ContentHierarchyDataAccess
 from db.database import Session
 from db.database import init_db
 from db.models import ContentData, Dialogue
-from enums import ContentType
 from datetime import datetime
 from sqlalchemy import or_
 

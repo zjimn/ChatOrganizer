@@ -1,29 +1,27 @@
 import tkinter as tk
 
-from hierarchy_tree_manager import HierarchyTreeManager
-from db.config_data_access import ConfigDataAccess
+from config.app_config import AppConfig
+from event.tree_manager import TreeManager
 from db.database import init_db
-from events import EventManager
-from system_config import SystemConfig
+from event.events import EventManager
 
-from ui import MainWindow
-from list_data_manager import ListDataManager  # Import the class
+from ui.main_window import MainWindow
+from event.list_manager import ListManager  # Import the class
 
 def main():
     init_db()
-    system_config = SystemConfig()
+    system_config = AppConfig()
     root = tk.Tk()
     root.title("GPT Completion Tool")
     root.geometry("800x600")
 
-    config_data_access = ConfigDataAccess()
-    main_window = MainWindow(root, config_data_access)
-    content_hierarchy_tree_manager = HierarchyTreeManager(main_window)
+    main_window = MainWindow(root)
+    content_hierarchy_tree_manager = TreeManager(root, main_window.directory_tree)
     # 绑定事件
-    event_manager = EventManager(root, main_window, config_data_access, system_config, content_hierarchy_tree_manager)
+    event_manager = EventManager(root, main_window, system_config, content_hierarchy_tree_manager)
     event_manager.bind_events()
 
-    data_manager = ListDataManager(main_window)
+    data_manager = ListManager(root, main_window.display_frame.tree)
 
     #cht.add_test_data()
     data_manager.update_data_items()
