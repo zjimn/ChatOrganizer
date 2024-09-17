@@ -6,7 +6,6 @@ from pathlib import Path
 
 from db.config_data_access import ConfigDataAccess
 
-
 class AppConfig:
     """A class to manage system configuration variables stored in a database."""
 
@@ -14,9 +13,19 @@ class AppConfig:
         'image_dir_path':  str(Path("../data") / "images")
     }
 
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(AppConfig, cls).__new__(cls, *args, **kwargs)
+            cls._instance.__initialized = False
+        return cls._instance
+
     def __init__(self):
-        # Initialize default config if the table is empty
+        if self.__initialized:
+            return
         self.initialize_default_configs()
+        self.__initialized = True
 
     def initialize_default_configs(self):
         """Initialize default configuration values if not already present."""
@@ -25,21 +34,24 @@ class AppConfig:
         existing_keys = {config.key for config in configs}
         for key, value in self.CONFIGS.items():
             if key not in existing_keys:
-                with ConfigDataAccess() as cda:
-                    cda.upsert_config(key, value)
-
+                self.set(key, value, True)
 
         for item in configs:
             self.CONFIGS[item.key] = item.value
 
     def get(self, key: str, default=None):
-        return self.CONFIGS.get(key) if self.CONFIGS else default
+        return self.CONFIGS.get(key, default)
 
-    def set(self, key: str, value: str, update_db = False) -> None:
+    def set(self, key: str, value: str, update_db=False) -> None:
         self.CONFIGS[key] = value
         if update_db:
             with ConfigDataAccess() as cda:
                 cda.upsert_config(key, value)
 
+    def save_all(self) -> None:
+        for key, value in self.CONFIGS.items():
+            self.set(key, value, True)
+
     def delete(self, key: str) -> None:
-        del self.CONFIGS[key]
+        if key in self.CONFIGS:
+            del self.CONFIGS[key]

@@ -3,10 +3,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox, DISABLED, NORMAL
 from PIL import Image, ImageTk
 import service.content_service
-from config.constant import TYPE_OPTION_KEY
+from config.constant import TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY
 from config.app_config import AppConfig
 from config.enum import ViewType
 from db.content_data_access import ContentDataAccess
+from event.event_bus import event_bus
 from service.content_service import ContentService
 from ui.list_editor import ListEditor
 from ui.syle.tree_view_style_manager import TreeViewStyleManager
@@ -16,24 +17,20 @@ from util.str_util import get_chars_by_count
 
 
 class ListManager:
-    def __init__(self, root, main_window, tree_manager):
+    def __init__(self, root, main_window):
         # Create Treeview
+        self.selected_tree_id = None
         self.main_window = main_window
         self.tree = main_window.display_frame.tree
-        self.tree_manager = tree_manager
+        self.search_input_entry_text = main_window.display_frame.search_input_entry_text
         self.style_manager = TreeViewStyleManager(self.tree)
-        self.list_editor = ListEditor(root, self.tree)
+
         self.image_list = []
         # Create context menu
         self.context_menu = tk.Menu(self.tree, tearoff=0)
         self.content_service = ContentService()
         self.bind_events()
-        self.system_config = AppConfig()
-
-    def bind_events(self):
-        self.tree.bind("<Motion>", self.on_mouse_move)
-        self.tree.bind('<<UpdateListEvent>>', self.on_update_list)
-
+        self.app_config = AppConfig()
 
     def show_context_menu(self, event):
         # Show context menu
@@ -91,7 +88,7 @@ class ListManager:
             self.tree.selection_set(last_item)
 
     def update_data_items(self, txt=""):
-        if self.system_config.get(TYPE_OPTION_KEY, '1') == 0:
+        if self.app_config.get(TYPE_OPTION_KEY_NAME, '1') == 0:
             self.update_txt_data_items(txt)
         else:
             self.update_img_data_items(txt)
@@ -169,7 +166,6 @@ class ListManager:
             self.tree.focus(last_item)
             self.tree.selection_set(last_item)
 
-
     def set_column_width(self, output_frame):
         frame_width = output_frame.winfo_width()
         num_columns = len(self.tree["columns"])
@@ -184,23 +180,53 @@ class ListManager:
         self.tree.update_idletasks()  # Force update to ensure styles are applied
         self.tree.update()
 
-
     def on_button_click(self, index):
         print(f"Button clicked for item {index}")
 
     def on_update_list(self, event):
-        tree_id = self.tree_manager.get_selected_item_id()
+        tree_id = self.selected_tree_id
         data = self.tree.data
         search_text = data.get("search", "")
-        view_type = data.get("type", "")
+        view_type = data.get("type", ViewType.TXT)
         self.set_column_width(self.main_window.output_window.output_frame)
         if view_type == ViewType.TXT:
             self.update_txt_data_items(search_text, tree_id)
         elif view_type == ViewType.IMG:
             self.update_img_data_items(search_text, tree_id)
 
+    def on_insert_item(self, event):
+        data = self.tree.data
+        content_id = data.get("content_id")
+        view_type = self.app_config.get(TYPE_OPTION_KEY_NAME, '0')
+        self.set_column_width(self.main_window.output_window.output_frame)
+        if self.app_config.get(TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_TXT_KEY:
+            self.insert_txt_data_item(content_id)
+        elif view_type == ViewType.IMG:
+            self.insert_img_data_item(content_id)
+
+    def update_data_list(self, event, *args):
+        self.set_column_width(self.main_window.output_window.output_frame)
+        txt = self.main_window.display_frame.search_input_text.get()
+        tree_id = self.selected_tree_id
+        if self.app_config.get(TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_TXT_KEY:
+            self.update_txt_data_items(txt, tree_id)
+        else:
+            self.update_img_data_items(txt, tree_id)
+
+    def on_press_tree_item(self, tree_id):
+        self.selected_tree_id = tree_id
+
     def clear_treeview(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
+
+    def bind_events(self):
+        self.tree.bind("<Motion>", self.on_mouse_move)
+        self.tree.bind('<<InsertListItem>>', self.on_insert_item)
+        self.tree.bind('<<UpdateList>>', self.on_update_list)
+        self.tree.bind('<<UpdateList>>', self.on_update_list)
+        self.search_input_entry_text.trace('w', self.update_data_list)
+        self.main_window.directory_tree.tree.bind('<<TreeviewSelect>>', self.update_data_list)
+        event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
 
 

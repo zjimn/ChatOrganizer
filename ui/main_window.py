@@ -20,15 +20,14 @@ class MainWindow:
         self.input_frame = None
         self.directory_tree = None
         self.view_type = ViewType.TXT
-        self.options = ["文字", "图片"]
         self.data_manager = None
         self.set_config_from_database()
         self.create_ui(root)
 
     def set_config_from_database(self):
         with ConfigDataAccess() as cda:
-            self.selected_size_option = int(cda.get_config_value_by_key(constant.IMG_SIZE_OPTION_KEY, '0'))
-            self.selected_type_option = int(cda.get_config_value_by_key(constant.TYPE_OPTION_KEY, '0'))
+            self.selected_size_option = int(cda.get_config_value_by_key(constant.IMG_SIZE_OPTION_KEY_NAME, '0'))
+            self.selected_type_option = int(cda.get_config_value_by_key(constant.TYPE_OPTION_KEY_NAME, '0'))
 
     def create_ui(self, root):
         # Initialize Frames

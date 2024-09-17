@@ -3,53 +3,34 @@ from idlelib.searchengine import get_selection
 from tkinter import ttk, simpledialog, messagebox
 from typing import Optional
 
+from config.app_config import AppConfig
+from config.constant import LAST_SELECTED_TREE_ID_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
+from event.event_bus import event_bus
+from ui.syle.tree_view_style_manager import TreeViewStyleManager
 
 
 class TreeManager:
-    def __init__(self, root, dir_tree):
+    def __init__(self, root, main_window):
         self.root = root
         self.current_item = None
         self.pre_selected_item = None
-        self.dir_tree = dir_tree
-        self.tree_view = dir_tree.tree
-        self.update_tree_from_db()
+        self.main_window = main_window
+        self.dir_tree = main_window.directory_tree
+        self.tree_view = main_window.directory_tree.tree
+        self.app_config = AppConfig()
+
         self._setup_context_menu()
         self.style = ttk.Style()
-        self.set_style()
-        self.tree_view.bind("<Motion>", self.on_mouse_move)
-        self.tree_view.bind("<Leave>", self.on_mouse_leave)
+        self.style_manager = TreeViewStyleManager(self.dir_tree)
 
-        # 绑定事件
-        self.tree_view.bind('<ButtonPress-1>', self.on_item_press)
-        self.tree_view.bind('<B1-Motion>', self.on_drag)
-        self.tree_view.bind('<ButtonRelease-1>', self.on_drop)
+
         self.tree_item_press_event = "<<TreeItemPress>>"
-
+        self.update_tree_from_db()
         self.dragged_item = None
         self.floating_label = None
         self.start_drag = False  # 标记是否开始拖动
-
-
-    def set_style(self):
-        self.style.map('Tree.Treeview', background=[('selected', '#add8e6')])
-        self.style.map('Tree.Treeview', foreground=[('selected', 'white')])
-        self.style.configure('Tree.Treeview',
-                        rowheight=40, font=("Arial", 12),
-                        padding=(5, 10, 5, 10),
-                        fieldbackground = 'white',
-                        background='white',  # Background color for the entire treeview
-                        foreground='#0d0d0d',  # Font color
-                        bordercolor = '#cccccc',  # 设置列之间的竖线颜色
-                        borderwidth = 10,
-                        highlightthickness=1,  # 设置高亮边框厚度
-                        bd=1,  # 设置边框宽度
-                        #relief = 'solid'  # 使用 solid 来显示边框
-                             )
-        self.tree_view.tag_configure('normal', background='white', foreground='#0d0d0d')
-        self.tree_view.tag_configure('hover', background='#e8eaed', foreground='#0d0d0d')
-        self.style.map('Tree.Treeview', background=[('selected', '#e8f0fe')])
-        self.style.map('Tree.Treeview', foreground=[('selected', '#1a73e8')])
+        self.bind_events()
 
     def _setup_context_menu(self):
         """Set up the context menu for the Treeview."""
@@ -62,12 +43,14 @@ class TreeManager:
 
     def _show_context_menu(self, event):
         """Show the context menu on right-click."""
-        self.generate_press_event()
+
         item = self.tree_view.identify_row(event.y)
         self.tree_view.focus(item)
-        self.tree_view.item(self.current_item, tags=("normal",))
+        if self.current_item in self.tree_view.get_children():
+            self.tree_view.item(self.current_item, tags=("normal",))
         self.current_item = item
         if item:
+            self.publish_press_event(item)
             self.tree_view.selection_set(item)
             self.context_menu.post(event.x_root, event.y_root)
 
@@ -179,12 +162,19 @@ class TreeManager:
         """设置焦点至顶层第一个项（如果没有选中项的话）"""
         # 检查是否已有选中的项
         selected_items = self.tree_view.selection()
-        if not selected_items and len(self.tree_view.get_children()) > 0:
+        first_item = None
+        last_selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
+        if last_selected_tree_id is not None and self.tree_view.exists(last_selected_tree_id):
+            first_item = last_selected_tree_id
+        if first_item is None and (not selected_items and len(self.tree_view.get_children()) > 0):
             # 如果没有选中的项，则获取顶层第一个子项
             first_item = self.tree_view.get_children()[0]
             # 选择并设置焦点
-            self.tree_view.selection_set(first_item)
-            self.tree_view.focus(first_item)
+        self.tree_view.selection_set(first_item)
+        self.tree_view.focus(first_item)
+        self.tree_view.see(first_item)
+        self.publish_press_event(first_item)
+
 
     def _insert_tree_item(self, parent_id: Optional[int], item_id: int, text: str):
         """Insert an item into the Treeview."""
@@ -276,7 +266,6 @@ class TreeManager:
         """Get the ID of the currently selected item in the Treeview."""
         selected_item_id = self.tree_view.focus()
         if selected_item_id:
-            print(f"Selected item ID: {selected_item_id}")
             return int(selected_item_id)
         else:
             print("No item is selected.")
@@ -307,14 +296,14 @@ class TreeManager:
 
     def on_item_press(self, event):
         selected_item = self.get_selected_item_id()
-        self.generate_press_event()
         # 获取被点击的项目
         self.dragged_item = self.tree_view.identify_row(event.y)
         self.start_drag = False  # 重置拖动状态
         self.destroy_floating_label()
+        self.publish_press_event(self.dragged_item)
 
-    def generate_press_event(self):
-        self.tree_view.event_generate(self.tree_item_press_event, data=self.dragged_item)
+    def publish_press_event(self, item):
+        event_bus.publish("TreeItemPress", tree_id = item)
 
     def on_drag(self, event):
         # 检查是否有项目被点击
@@ -330,8 +319,6 @@ class TreeManager:
             # 更新浮动标签的位置
             self.floating_label.place(x=event.x_root - self.root.winfo_rootx() + 10,
                                       y=event.y_root - self.root.winfo_rooty() + 10)
-
-
 
     def on_drop(self, event):
         # 获取目标位置
@@ -385,8 +372,32 @@ class TreeManager:
             self.floating_label.destroy()
             self.floating_label = None
 
+    # Function to toggle icons on open/close event
+    def toggle_folder_icon(self, event):
+        # Get the currently focused item
+        item_id = self.main_window.display_frame.tree.focus()
+        # Check if the item is open or closed
+        if self.dir_tree.item(item_id, 'open'):
+            # Set open folder icon
+            self.dir_tree.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
+        else:
+            # Set closed folder icon
+            self.dir_tree.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
 
-            
+
+    def bind_events(self):
+        self.tree_view.bind('<<TreeviewOpen>>', self.toggle_folder_icon)
+        self.tree_view.bind('<<TreeviewClose>>', self.toggle_folder_icon)
+
+        self.tree_view.bind("<Motion>", self.on_mouse_move)
+        self.tree_view.bind("<Leave>", self.on_mouse_leave)
+        # 绑定事件
+        self.tree_view.bind('<ButtonPress-1>', self.on_item_press)
+        self.tree_view.bind('<B1-Motion>', self.on_drag)
+        self.tree_view.bind('<ButtonRelease-1>', self.on_drop)
+
+
+
 # Example usage
 if __name__ == "__main__":
     root = tk.Tk()
