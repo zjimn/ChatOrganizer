@@ -152,23 +152,11 @@ class EventManager:
         pass
         self.text_inserter.clean_bg() # clean tag to reset bg color
 
-    def show_tree(self):
-        view_type = self.main_window.view_type
-        txt = self.main_window.display_frame.search_input_text.get()
-        data_manager = ListManager(self.root, self.main_window.display_frame.tree)
-        selected_item_id = self.content_hierarchy_tree_manager.get_selected_item_id()
-        if view_type == ViewType.TXT:
-            data_manager.set_column_width(self.main_window.output_window.output_frame)
-            data_manager.update_txt_data_items(txt, selected_item_id)
-        elif view_type == ViewType.IMG:
-            data_manager.set_column_width(self.main_window.output_window.output_frame)
-            data_manager.update_img_data_items(txt, selected_item_id)
-        self.main_window.data_manager = data_manager
 
     def insert_tree_item(self, content_id):
         view_type = self.main_window.view_type
         txt = self.main_window.display_frame.search_input_text.get()
-        data_manager = ListManager(self.root, self.main_window.display_frame.tree)
+        data_manager = ListManager(self.root, self.main_window, self.content_hierarchy_tree_manager)
         selected_item_id = self.content_hierarchy_tree_manager.get_selected_item_id()
         if view_type == ViewType.TXT:
             data_manager.set_column_width(self.main_window.output_window.output_frame)
@@ -236,7 +224,7 @@ class EventManager:
             self.session_id = self.content_service.save_txt_record(self.session_id, selected_item_id, prompt, answer)
         if show_tree:
             self.insert_tree_item(self.session_id)
-        self.set_submit_button_state(True)
+        self.set_submit_button_init_state(True)
         self.set_prompt_input_focus()
 
     def clear_output_window_canvas_data(self):
@@ -352,18 +340,6 @@ class EventManager:
             label.config(image=photo_image)
             label.photo = photo_image
 
-    def on_type_option_change(self):
-        self.update_option()
-        """处理下拉列表选择变化事件。"""
-
-        if self.main_window.input_frame.option_var.get() == self.main_window.options[1]:
-            self.show_tree()
-            self.system_config.set(TYPE_OPTION_KEY,'1')
-        else:
-            self.show_tree()
-            self.system_config.set(TYPE_OPTION_KEY,'0')
-        self.close_output_window()
-
 
     def update_option(self):
         if self.main_window.input_frame.option_var.get() == self.main_window.options[1]:
@@ -405,28 +381,12 @@ class EventManager:
         # 设置窗口的大小和位置
         self.main_window.output_window.output_window.geometry(f"{window_width}x{window_height}+{x+5}+{y}")
 
-    def on_size_option_change(self):
-        """处理下拉列表选择变化事件。"""
-        size_options = ["1024x1024", "1792x1024", "1024x1792"]
-        for index, option in enumerate(size_options):
-            if self.main_window.input_frame.size_var.get() == option:
-                self.system_config.set(IMG_SIZE_OPTION_KEY, index)
-                break
 
 
-    def on_key_press(self, event, submit_button):
-        """处理键盘按下事件，触发按钮点击事件并调用 on_submit。"""
-        if event.keysym == 'Return' and event.state & 0x20000 == 0:
-            submit_button.state(['pressed'])  # 按钮按下状态
-            # 调用 on_submit 函数
 
 
-    def on_key_release(self, event, main_window, root):
-        # 打印当前状态以调试问题
-        root.update_idletasks()
-        """处理键盘按下事件，触发按钮点击事件并调用 on_submit。"""
-        # 使用 after 方法稍微延迟状态检查，确保 Tkinter 更新完状态
-        root.after(100, self.check_and_submit, event, main_window)
+
+
 
     def check_and_submit(self, event, main_window):
         """检查按钮状态并处理提交。"""
@@ -436,26 +396,22 @@ class EventManager:
             main_window.input_frame.submit_button.state(['!pressed'])  # 取消按钮按下状态
             self.thread_submit()
 
-    def on_hit_submit_button(self):
-        if not self.main_window.input_frame.submit_button_is_changed:
-            self.thread_submit()
-        else:
-            if self.txt_generator:
-                self.txt_generator.cancel_request()
-            if self.img_generator:
-                self.img_generator.cancel_request()
-            self.set_submit_button_state(True)
-
     def set_prompt_input_focus(self):
         self.check_input_text()
         self.main_window.input_frame.input_text.focus_set()
 
-    def thread_submit(self):
-        self.set_submit_button_state(False)
+    def thread_submit(self, event = None):
+        self.set_submit_button_init_state(False)
         # 切换状态
         threading.Thread(target=lambda: self.submit_prompt()).start()
 
-    def set_submit_button_state(self, init = False):
+    def cancel_request(self, event):
+        if self.txt_generator:
+            self.txt_generator.cancel_request()
+        if self.img_generator:
+            self.img_generator.cancel_request()
+
+    def set_submit_button_init_state(self, init = False):
         self.main_window.input_frame.submit_button_is_changed = not init
         if init:
             # 恢复初始状态
@@ -543,7 +499,7 @@ class EventManager:
     def on_press_tree_item(self, event):
         self.close_output_window()
 
-    def on_close_output_window(self):
+    def on_close_output_window(self, event = None):
         self.close_output_window()
 
     def close_output_window(self):
@@ -552,23 +508,8 @@ class EventManager:
         self.img_generator.clear_history()
         self.txt_generator.clear_history()
 
-    def on_text_change(self, event):
-        self.main_window.input_frame.input_text.edit_modified(False)
-        self.root.after(100, lambda: self.main_window.input_frame.input_text.see(tk.END))
-        lines = self.main_window.input_frame.input_text.get('1.0', 'end-1c').split('\n')
-        num_lines = len(lines)
-        new_height = max(num_lines, 1)
-        self.main_window.input_frame.input_text.config(height=new_height)
 
-    def on_search_text_change(self, *args):
-        self.main_window.input_frame.input_text.edit_modified(False)
-        self.show_tree()
 
-    def on_alt_return_press(self, event):
-        """处理 Alt + Return 组合键，执行回车键效果。"""
-        # 插入换行符
-        self.main_window.input_frame.input_text.insert(tk.INSERT, "\n")
-        return "break"  # 确保没有其他默认行为
 
     # Function to toggle icons on open/close event
     def toggle_folder_icon(self, event):
@@ -584,7 +525,7 @@ class EventManager:
 
     def on_hierarchy_item_selected(self, event):
         selected_item_id = self.content_hierarchy_tree_manager.get_selected_item_id()
-        self.show_tree()
+        #self.show_tree()
 
     def on_close_main_window(self):
         for index, option in enumerate(self.main_window.options):
@@ -610,43 +551,29 @@ class EventManager:
 
     def bind_events(self):
         # 绑定事件
-        self.root.bind("<Configure>", lambda e: self.on_resize(e, self.main_window))
-        self.main_window.input_frame.option_var.trace("w", lambda *args: self.on_type_option_change())
-        self.main_window.input_frame.size_var.trace("w", lambda *args: self.on_size_option_change())
-        self.root.bind("<KeyPress>", lambda event: self.on_key_press(event, self.main_window.input_frame.submit_button))
-
-        self.main_window.output_window.output_window.protocol("WM_DELETE_WINDOW", self.on_close_output_window)
-
-        self.root.bind("<KeyRelease>", lambda e: self.on_key_release(e, self.main_window, self.root))
 
 
-        self.main_window.input_frame.submit_button.config(command=lambda: self.on_hit_submit_button())
-        self.main_window.output_window.output_window.bind("<MouseWheel>", self.on_mouse_wheel)
+
         # Bind double-click event to Treeview
         self.main_window.display_frame.tree.bind("<Double-1>", lambda event: self.on_item_double_click(event, self.main_window, self.root))
-        self.main_window.output_window.output_window_canvas.bind_all("<MouseWheel>", self.on_output_window_canvas_mouse_wheel)
-        self.main_window.input_frame.input_text.bind("<<Modified>>", self.on_text_change)
-
-        # 绑定 Alt + Return 键事件到 on_alt_return_press 方法
-        self.main_window.input_frame.input_text.bind("<Alt-Return>", self.on_alt_return_press)
-
-        # 禁用单独 Return 键的默认行为
-        self.main_window.input_frame.input_text.bind("<Return>", lambda event: "break")
-        self.main_window.display_frame.search_input_entry_text.trace('w', self.on_search_text_change)  # 'w' 表示监听写操作
-
 
         # Bind event to toggle icons when items are opened or closed
         self.main_window.directory_tree.tree.bind('<<TreeviewOpen>>', self.toggle_folder_icon)
         self.main_window.directory_tree.tree.bind('<<TreeviewClose>>', self.toggle_folder_icon)
-
         self.main_window.directory_tree.tree.bind("<<TreeviewSelect>>", self.on_hierarchy_item_selected)
         self.main_window.directory_tree.tree.bind('<<TreeItemPress>>', self.on_press_tree_item)
+
+        self.main_window.output_window.output_window.protocol("WM_DELETE_WINDOW", self.on_close_output_window)
+        self.main_window.output_window.output_window.bind("<MouseWheel>", self.on_mouse_wheel)
         self.main_window.output_window.output_text.vbar.bind("<B1-Motion>", lambda event: self.on_output_text_scroll_drag(event))
         self.main_window.output_window.output_text.bind("<MouseWheel>", lambda event: self.on_output_text_scroll_drag(event))
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close_main_window)
         self.main_window.output_window.output_window_canvas.bind("<Enter>", self.on_enter_output_window_canvas_canvas)
         self.main_window.output_window.output_window_canvas.bind("<Leave>", self.on_leave_output_window_canvas_canvas)
+        self.main_window.output_window.output_window_canvas.bind_all("<MouseWheel>", self.on_output_window_canvas_mouse_wheel)
 
         # 绑定 Text 小部件的事件
-        self.main_window.input_frame.input_text.bind("<KeyRelease>", self.check_input_text)
-        self.root.bind('<<SubmitRequest>>', self.thread_submit)
+        self.root.bind('<<SubmitRequest>>', lambda event: self.thread_submit(event))
+        self.root.bind('<<CancelRequestEvent>>', lambda event: self.cancel_request(event))
+        self.root.bind('<<CloseOutputWindowEvent>>', lambda event: self.on_close_output_window(event))
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close_main_window)
+        self.root.bind("<Configure>", lambda e: self.on_resize(e, self.main_window))

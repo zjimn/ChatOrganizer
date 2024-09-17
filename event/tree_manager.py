@@ -331,6 +331,8 @@ class TreeManager:
             self.floating_label.place(x=event.x_root - self.root.winfo_rootx() + 10,
                                       y=event.y_root - self.root.winfo_rooty() + 10)
 
+
+
     def on_drop(self, event):
         # 获取目标位置
         target_item = self.tree_view.identify_row(event.y)

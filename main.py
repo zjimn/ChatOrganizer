@@ -1,6 +1,7 @@
 import tkinter as tk
 
 from config.app_config import AppConfig
+from event.input_manager import InputManager
 from event.tree_manager import TreeManager
 from db.database import init_db
 from event.events import EventManager
@@ -16,16 +17,17 @@ def main():
     root.geometry("800x600")
 
     main_window = MainWindow(root)
-    content_hierarchy_tree_manager = TreeManager(root, main_window.directory_tree)
+    tree_manager = TreeManager(root, main_window.directory_tree)
     # 绑定事件
-    event_manager = EventManager(root, main_window, system_config, content_hierarchy_tree_manager)
+    event_manager = EventManager(root, main_window, system_config, tree_manager)
     event_manager.bind_events()
 
-    data_manager = ListManager(root, main_window.display_frame.tree)
+    list_manager = ListManager(root, main_window, tree_manager)
+    InputManager(root, main_window)
 
     #cht.add_test_data()
-    data_manager.update_data_items()
-    main_window.data_manager = data_manager
+    list_manager.update_data_items()
+    main_window.data_manager = list_manager
     # 调整下拉列表宽度
     event_manager.adjust_option_menu_width()
 

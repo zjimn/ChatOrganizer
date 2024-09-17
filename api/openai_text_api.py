@@ -36,7 +36,7 @@ class OpenaiTextApi:
     def generate_gpt_completion(self, user_input, new=False):
         self.cancel = False
         # Append the user input to the conversation history
-        self.token_manager.add_txt_message(config.DISPLAY_USER_NAME, user_input)
+        self.token_manager.add_txt_message(constant.DISPLAY_USER_NAME, user_input)
 
         # Manage and trim the conversation history if necessary
         # manage_history()
@@ -52,7 +52,7 @@ class OpenaiTextApi:
             response_content = completion.choices[0].message.content
 
             # Append the model's response to the conversation history
-            self.token_manager.add_txt_message(config.DISPLAY_ASSISTANT_NAME, response_content)
+            self.token_manager.add_txt_message(constant.DISPLAY_ASSISTANT_NAME, response_content)
             if self.cancel:
                 return None
             return response_content

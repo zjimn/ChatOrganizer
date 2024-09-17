@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import service.content_service
 from config.constant import TYPE_OPTION_KEY
 from config.app_config import AppConfig
+from config.enum import ViewType
 from db.content_data_access import ContentDataAccess
 from service.content_service import ContentService
 from ui.list_editor import ListEditor
@@ -15,9 +16,11 @@ from util.str_util import get_chars_by_count
 
 
 class ListManager:
-    def __init__(self, root, tree):
+    def __init__(self, root, main_window, tree_manager):
         # Create Treeview
-        self.tree = tree
+        self.main_window = main_window
+        self.tree = main_window.display_frame.tree
+        self.tree_manager = tree_manager
         self.style_manager = TreeViewStyleManager(self.tree)
         self.list_editor = ListEditor(root, self.tree)
         self.image_list = []
@@ -29,6 +32,8 @@ class ListManager:
 
     def bind_events(self):
         self.tree.bind("<Motion>", self.on_mouse_move)
+        self.tree.bind('<<UpdateListEvent>>', self.on_update_list)
+
 
     def show_context_menu(self, event):
         # Show context menu
@@ -182,6 +187,17 @@ class ListManager:
 
     def on_button_click(self, index):
         print(f"Button clicked for item {index}")
+
+    def on_update_list(self, event):
+        tree_id = self.tree_manager.get_selected_item_id()
+        data = self.tree.data
+        search_text = data.get("search", "")
+        view_type = data.get("type", "")
+        self.set_column_width(self.main_window.output_window.output_frame)
+        if view_type == ViewType.TXT:
+            self.update_txt_data_items(search_text, tree_id)
+        elif view_type == ViewType.IMG:
+            self.update_img_data_items(search_text, tree_id)
 
     def clear_treeview(self):
         for item in self.tree.get_children():
