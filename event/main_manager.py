@@ -24,7 +24,7 @@ from api.openai_text_api import OpenaiTextApi
 from event.event_bus import event_bus
 from service.content_service import ContentService
 from util.text_inserter import TextInserter
-from util.image_utils import full_cover_resize
+from util.image_util import full_cover_resize
 from util.token_management import TokenManager
 
 
@@ -55,6 +55,8 @@ class MainManager:
         self.center_window()
         root.update_idletasks()
         self.text_inserter = TextInserter(self.root, self.main_window.output_window.output_text)
+
+        self.bind_events()
 
 
     def center_window(self):

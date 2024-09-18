@@ -1,16 +1,9 @@
 import tkinter as tk
-from tkinter import font as tkfont
-from datetime import datetime
-from pathlib import Path
-from PIL import Image, ImageTk
-import math
 
 from config import constant
 from config.app_config import AppConfig
-from config.constant import TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
+from config.constant import TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME
 from config.enum import ViewType
-from db.models import Dialogue
-from ui.input_frame import InputFrame
 
 
 class InputManager:

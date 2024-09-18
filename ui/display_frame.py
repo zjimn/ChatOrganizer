@@ -7,15 +7,29 @@ class DisplayFrame:
         self.parent = parent
 
         self.right_frame = tk.Frame(parent)
-        self.right_frame.grid(row=0, column=1, sticky="nswe")
 
         self.search_input_entry_text = tk.StringVar()
         self.search_input_text = ttk.Entry(self.right_frame, width=50, textvariable=self.search_input_entry_text)
         self.search_input_text.pack(side=tk.TOP, fill=tk.X, padx=0, pady=(0, 10), anchor=tk.S)
         self.search_input_text.config(font=("Microsoft YaHei", 10))
 
+        # 创建分页控件
+        self.pagination_frame = tk.Frame(self.right_frame, borderwidth=1, relief="raised")
+        self.pagination_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.prev_button = tk.Button(self.pagination_frame, text="Previous")
+        self.prev_button.pack(side=tk.LEFT)
+
+        self.page_label = tk.Label(self.pagination_frame, text="")
+        self.page_label.pack(side=tk.LEFT)
+
+        self.next_button = tk.Button(self.pagination_frame, text="Next")
+        self.next_button.pack(side=tk.LEFT)
+
+
+
         self.tree_frame = tk.Frame(self.right_frame)
-        self.tree_frame.pack(fill=tk.BOTH, expand=True)
+        self.tree_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.tree = ttk.Treeview(self.tree_frame, columns=("#0","id", "img", "prompt", "content", "create_time", "operation"), style='List.Treeview')
         self.tree.heading("#0", text="图片")
@@ -38,8 +52,13 @@ class DisplayFrame:
         self.tree.configure(yscrollcommand=self.tree_scrollbar.set)
         self.tree.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
+        self.bottom_frame = tk.Frame(self.right_frame, height = 0)
+        self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH)
+
+
         # Add sample data
-        self.insert_sample_data()
+        #self.insert_sample_data()
+
 
     def insert_sample_data(self):
         # Sample data to populate the tree ui

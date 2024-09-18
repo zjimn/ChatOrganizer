@@ -6,6 +6,7 @@ class TreeViewStyleManager:
     def __init__(self, tree):
         self.tree = tree
         self.style = ttk.Style()
+        self.style.theme_use('clam')
 
     def configure_styles(self):
         # Configure general style for the tree

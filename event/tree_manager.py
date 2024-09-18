@@ -22,9 +22,8 @@ class TreeManager:
 
         self._setup_context_menu()
         self.style = ttk.Style()
-        self.style_manager = TreeViewStyleManager(self.dir_tree)
-
-
+        self.style_manager = TreeViewStyleManager(self.dir_tree.tree)
+        self.style_manager.set_tree_style()
         self.tree_item_press_event = "<<TreeItemPress>>"
         self.update_tree_from_db()
         self.dragged_item = None
@@ -166,7 +165,7 @@ class TreeManager:
         last_selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
         if last_selected_tree_id is not None and self.tree_view.exists(last_selected_tree_id):
             first_item = last_selected_tree_id
-        if first_item is None and (not selected_items and len(self.tree_view.get_children()) > 0):
+        if first_item is None and len(self.tree_view.get_children()) > 0:
             # 如果没有选中的项，则获取顶层第一个子项
             first_item = self.tree_view.get_children()[0]
             # 选择并设置焦点
@@ -229,12 +228,12 @@ class TreeManager:
             data_list = cha.get_all_data()
 
         self.tree_view.delete(*self.tree_view.get_children())
-        item_map = {}
+        #item_map = {}
 
         for item in data_list:
             parent_id = item.parent_id if item.parent_id is not None else ''
             self._insert_tree_item(parent_id, item.child_id, item.name)
-            item_map[item.child_id] = parent_id
+            #item_map[item.child_id] = parent_id
         self.set_focus_to_first_item()
 
     def delete_item(self, item_id: int) -> None:
@@ -375,14 +374,14 @@ class TreeManager:
     # Function to toggle icons on open/close event
     def toggle_folder_icon(self, event):
         # Get the currently focused item
-        item_id = self.main_window.display_frame.tree.focus()
+        item_id = self.dir_tree.tree.focus()
         # Check if the item is open or closed
-        if self.dir_tree.item(item_id, 'open'):
+        if self.dir_tree.tree.item(item_id, 'open'):
             # Set open folder icon
-            self.dir_tree.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
+            self.dir_tree.tree.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
         else:
             # Set closed folder icon
-            self.dir_tree.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
+            self.dir_tree.tree.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
 
 
     def bind_events(self):

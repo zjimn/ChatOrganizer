@@ -134,7 +134,7 @@ class ContentHierarchyDataAccess:
 
                     for content_data in content_data_records:
                         # 更新 ContentData 记录的 delete_time
-                        content_data.delete_time = datetime.utcnow()
+                        content_data.delete_time = datetime.now()
 
                         # 查找与 ContentData 关联的 Dialogue 记录
                         dialogue_records = self.session.query(Dialogue).filter(

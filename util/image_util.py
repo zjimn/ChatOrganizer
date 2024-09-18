@@ -26,7 +26,10 @@ def resize_image(img, target_size):
     ratio = min(target_width / original_width, target_height / original_height)
     new_width = int(original_width * ratio)
     new_height = int(original_height * ratio)
-
+    if new_width < 1:
+        new_width = 1
+    if new_height < 1:
+        new_height = 1
     # 调整图片大小
     img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
@@ -42,6 +45,16 @@ def resize_image(img, target_size):
     return background
 
 def full_cover_resize(img, target_size):
+    target_width, target_height = target_size
+    original_width, original_height = img.size
+    if original_width / original_height > target_width / target_height:
+
+        return resize_image(img, (None,target_size[1]))
+
+    else:
+        return resize_image(img, (target_size[0], None))
+
+def resize(img, target_size):
     target_width, target_height = target_size
     original_width, original_height = img.size
     if original_width / original_height > target_width / target_height:

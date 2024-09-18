@@ -4,6 +4,7 @@ from io import BytesIO
 from tkinter import font as tkfont, filedialog
 from datetime import datetime
 from pathlib import Path
+from tkinter.ttk import Label
 
 import requests
 from PIL import Image, ImageTk
@@ -20,8 +21,11 @@ from db.models import Dialogue
 from event.event_bus import event_bus
 from service.content_service import ContentService
 from ui.input_frame import InputFrame
-from util.image_utils import full_cover_resize
+from util import image_util
+from util.ImageViewer import ImageViewer
+from util.image_util import full_cover_resize
 from util.text_inserter import TextInserter
+from util.window_util import center_window
 
 
 class OutputManager:
@@ -32,7 +36,7 @@ class OutputManager:
         self.root = root
         self.app_config = AppConfig()
         self.output_window_canvas_scroll_enabled = None
-
+        self.image_viewer = ImageViewer(self.root)
         self.focus_dialog_index = None
         self.dialog_frames = []
         self.dialog_labels = []
@@ -53,7 +57,6 @@ class OutputManager:
         self.main_window.output_window.output_window_scrollbar.pack_forget()
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.clear_output_window_canvas_data()
-        main_window.output_window.output_image.pack_forget()
         main_window.output_window.output_text.pack(fill=tk.BOTH, expand=True)
         main_window.output_window.output_text.config(state=tk.NORMAL)
         if not append:
@@ -86,7 +89,6 @@ class OutputManager:
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         #self.main_window.output_window.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.clear_output_window_canvas_data()
-        main_window.output_window.output_image.pack_forget()
         main_window.output_window.output_text.pack(fill=tk.BOTH, expand=True)
         main_window.output_window.output_text.config(state=tk.NORMAL)
         if not append:
@@ -236,6 +238,8 @@ class OutputManager:
             #img_label.bind("<Button-1>", self.on_mouse_click)
             img_label.bind("<Button-3>", lambda event: self.on_right_click(event, img))
 
+            img_label.bind("<Double-Button-1>", lambda e: self.image_viewer.on_image_double_click(e, image_path, self.root))
+
             img_label.bind("<Leave>", self.on_mouse_leave_img)
 
             if append:
@@ -375,7 +379,7 @@ class OutputManager:
         for label in self.dialog_labels:
             label.config(image=None)
         for frame in self.dialog_frames:
-            frame.destroy()  # 销毁包含图片和文本的 Frame
+            frame.destroy()
         self.dialog_images.clear()
         self.zoom_levels.clear()
         self.dialog_labels.clear()
@@ -385,11 +389,14 @@ class OutputManager:
             widget.destroy()
 
     def on_item_double_click(self, event, main_window, root):
+        selected_items = main_window.display_frame.tree.selection()
+        if len(selected_items) == 0:
+            return 
         item = main_window.display_frame.tree.selection()[0]  # Get the selected item
         values = main_window.display_frame.tree.item(item, 'values')  # Get the values of the selected item
         # show_text(main_window, values[0], root)
         self.session_id = values[0]
-        if self.app_config.get(TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_TXT_KEY:
+        if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             self.set_output_text_default_background()
             data = self.content_service.load_txt_dialogs(self.session_id)
             self.txt_generator.clear_history()
@@ -407,7 +414,6 @@ class OutputManager:
             self.set_dialog_images(dialogs)
 
     def thread_submit(self, event = None):
-        # 切换状态
         threading.Thread(target=lambda: self.submit_prompt()).start()
 
     def cancel_request(self, event):

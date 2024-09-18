@@ -1,5 +1,8 @@
 from datetime import datetime
 from typing import Optional, List
+
+from sqlalchemy import update
+
 from db.database import Session
 from db.database import init_db
 from db.models import Dialogue
@@ -75,12 +78,48 @@ class DialogueDataAccess:
             self.session.rollback()
             print(f"An error occurred: {e}")
 
+    def batch_update_data(self, updates: list[Dialogue]) -> None:
+        """
+        Batch update multiple records by their IDs.
+
+        Each dictionary in the updates list should contain the following keys:
+        - 'data_id' (required): the ID of the record to update
+        - Optional fields: 'role', 'message', 'img_path'
+        """
+        try:
+            # Prepare update statements for each record
+            for dialogue  in updates:
+                id = dialogue .id
+                if not id:
+                    print("Skipping update with missing data_id.")
+                    continue
+
+                # Prepare the update statement
+                stmt = (
+                    update(Dialogue)
+                    .where(Dialogue.id == id, Dialogue.delete_time.is_(None))
+                    .values({
+                        'message': dialogue.message,
+                        'img_path': dialogue.img_path,
+                        'delete_time': dialogue.delete_time
+                    })
+                )
+
+                # Execute the update
+                self.session.execute(stmt)
+
+            # Commit all updates at once
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            print(f"An error occurred during batch update: {e}")
+
     def delete_data(self, data_id: int) -> None:
         """Delete a record by its ID."""
         try:
             data = self.session.query(Dialogue).filter(Dialogue.id == data_id, Dialogue.delete_time.is_(None)).one_or_none()
             if data:
-                data.delete_time = datetime.utcnow()
+                data.delete_time = datetime.now()
                 self.session.commit()
             else:
                 print("No record found with the provided ID.")

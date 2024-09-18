@@ -68,7 +68,7 @@ class ConfigDataAccess:
             configs = self.session.query(Config).filter(Config.key == key, Config.delete_time.is_(None)).one_or_none()
             for conf in configs:
                 if conf:
-                    conf.delete_time = datetime.utcnow()
+                    conf.delete_time = datetime.now()
                     self.session.add(conf)
             self.session.commit()
         except Exception as e:

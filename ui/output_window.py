@@ -32,6 +32,3 @@ class OutputWindow:
         self.output_text = scrolledtext.ScrolledText(self.output_window_canvas, wrap=tk.WORD, state=tk.DISABLED)
         self.output_text.pack_forget()
         self.output_text.config(font=("Microsoft YaHei", 12), padx=10, pady=10)
-
-        self.output_image = tk.Label(self.output_window_canvas, bg="#f0f0f0")
-        self.output_image.pack_forget()
