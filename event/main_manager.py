@@ -85,7 +85,7 @@ class MainManager:
     def on_resize(self, event, main_window):
         """处理窗口调整事件，调整下拉列表宽度。"""
         #self.adjust_option_menu_width()
-        self.update_column_widths(main_window.display_frame.tree)
+        #self.update_column_widths(main_window.display_frame.tree)
 
     def on_press_tree_item(self, tree_id):
         self.selected_tree_id = tree_id

@@ -14,32 +14,50 @@ class ContentService:
     def __init__(self):
         pass
 
-    def load_txt_records_by_page(self, txt = "",  tree_id = None, page_number = 1, page_size = 20, content_id = None):
+    def load_txt_records_by_page(self, txt = "",  tree_id = None, page_number = 1, page_size = 20, content_id = None, sort_by = None, sort_order="asc"):
         """Load text records based on provided filters."""
         with ContentDataAccess() as cda:
-            return cda.get_data_by_describe_or_content_by_page(txt, ContentType.TXT.value, page_number, page_size, tree_id, content_id)
+            return cda.get_data_by_describe_or_content_by_page(txt, ContentType.TXT.value, page_number, page_size, tree_id, content_id, sort_by, sort_order)
 
-    def load_img_records_by_page(self,  txt = "",  tree_id = None, page_number = 1, page_size = 20, content_id = None):
+    def load_img_records_by_page(self,  txt = "",  tree_id = None, page_number = 1, page_size = 20, content_id = None, sort_by = None, sort_order="asc"):
         """Load image records based on provided filters."""
         with ContentDataAccess() as cda:
-            return cda.get_data_by_describe_or_content_by_page(txt, ContentType.IMG.value, page_number, page_size, tree_id, content_id)
+            return cda.get_data_by_describe_or_content_by_page(txt, ContentType.IMG.value, page_number, page_size, tree_id, content_id, sort_by, sort_order)
 
-    def load_txt_records(self, txt = "",  tree_id = None, content_id = None):
+    def load_txt_records(self, txt = "",  tree_id = None, content_id = None, sort_by = None, sort_order="asc"):
         """Load text records based on provided filters."""
         with ContentDataAccess() as cda:
-            return cda.get_data_by_describe_or_content(txt, ContentType.TXT.value, tree_id, content_id)
+            return cda.get_data_by_describe_or_content(txt, ContentType.TXT.value, tree_id, content_id, sort_by, sort_order)
 
-    def load_img_records(self,  txt = "",  tree_id = None, content_id = None):
+    def load_img_records(self,  txt = "",  tree_id = None, content_id = None, sort_by = None, sort_order="asc"):
         """Load image records based on provided filters."""
         with ContentDataAccess() as cda:
-            return cda.get_data_by_describe_or_content(txt, ContentType.IMG.value, tree_id, content_id)
+            return cda.get_data_by_describe_or_content(txt, ContentType.IMG.value, tree_id, content_id, sort_by, sort_order)
 
     def update_data(self, content_id, type, describe, content, img_path = None, dialogues = None):
         """Update content data in the database."""
-        if dialogues:
+        if dialogues is not None:
             content = self.merge_txt_content(dialogues, 50)
         with ContentDataAccess() as cda:
             cda.update_data(content_id, type, None, describe, content, img_path)
+
+    def move_to_target_tree(self, content_ids, tree_id):
+        """Update content data in the database."""
+        with ContentDataAccess() as cda:
+            for id in content_ids:
+                cda.update_data(data_id = id, content_hierarchy_child_id = tree_id)
+
+
+    def copy_to_target_tree(self, content_ids, tree_id):
+        """Update content data in the database."""
+        with ContentDataAccess() as cda:
+            for content_id in content_ids:
+                data = cda.get_data_by_id(content_id)
+                inserted_data_id = cda.insert_data(data.type, tree_id, data.describe, data.content, data.img_path)
+                with DialogueDataAccess() as dda:
+                    dialogues = dda.get_data_by_content_id(content_id)
+                    for dialogue in dialogues:
+                        dda.insert_data(inserted_data_id, dialogue.role, dialogue.message, dialogue.img_path)
 
     def batch_update_dialogue_data(self, data):
         """Update content data in the database."""

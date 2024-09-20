@@ -1,14 +1,16 @@
+import threading
 import tkinter as tk
-from tkinter import DISABLED, NORMAL
+from tkinter import DISABLED, NORMAL, ttk
 from PIL import Image, ImageTk
-from config.constant import TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY
+from config.constant import TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, LAST_LIST_ORDER_BY_COLUMN, \
+    LAST_LIST_SORT_ORDER_BY, PER_PAGE_COUNT_TXT, PER_PAGE_COUNT_IMG
 from config.app_config import AppConfig
 from config.enum import ViewType
 from event.event_bus import event_bus
 from service.content_service import ContentService
 from ui.syle.tree_view_style_manager import TreeViewStyleManager
 
-from util.image_util import resize_image
+from util.image_util import resize_image, open_img_replace_if_error
 from util.str_util import get_chars_by_count
 
 
@@ -19,21 +21,39 @@ class ListManager:
         self.data = None
         self.current_page = 1
         self.per_page_count = 20
-        self.per_page_count_txt = 20
-        self.per_page_count_img = 10
+        self.per_page_count_txt = PER_PAGE_COUNT_TXT
+        self.per_page_count_img = PER_PAGE_COUNT_IMG
         self.selected_tree_id = None
         self.main_window = main_window
         self.tree = main_window.display_frame.tree
+        self.app_config = AppConfig()
+        self.set_tree_by_type_option()
         self.pagination_frame = main_window.display_frame.pagination_frame
         self.search_input_entry_text = main_window.display_frame.search_input_entry_text
         self.style_manager = TreeViewStyleManager(self.tree)
-
         self.image_list = []
         # Create context menu
         self.context_menu = tk.Menu(self.tree, tearoff=0)
         self.content_service = ContentService()
         self.bind_events()
-        self.app_config = AppConfig()
+        self.order_by_column = "id"
+        self.sort_order_by = "asc"
+
+        self.sort_reverse = {
+            "id": False,
+            "describe": False,
+            "content": False,
+            "create_time": False,
+            "operation": False
+        }
+
+    def load_last_sort_order_by(self):
+        order_by_column = self.app_config.get(LAST_LIST_ORDER_BY_COLUMN)
+        sort_order_by = self.app_config.get(LAST_LIST_SORT_ORDER_BY)
+        if order_by_column:
+            self.order_by_column = order_by_column
+        if sort_order_by:
+            self.sort_order_by = sort_order_by
 
     def show_context_menu(self, event):
         # Show context menu
@@ -47,16 +67,16 @@ class ListManager:
                 self.context_menu.entryconfig(0, state=DISABLED)
             self.context_menu.post(event.x_root, event.y_root)
 
-    def update_txt_data_items(self, txt, selected_content_hierarchy_child_id=None, content_id=None, item_id = None):
+    def update_txt_data_items(self, txt, selected_content_hierarchy_child_id=None, content_id=None, item_id = None, sort_by = None, sort_order="asc"):
         page_number = self.current_page
         self.per_page_count = self.per_page_count_txt
         page_size = self.per_page_count
-        self.style_manager.configure_text_style()
+        #self.style_manager.configure_text_style()
         # Load records and count
 
         if not content_id:
             records, count = self.content_service.load_txt_records_by_page(txt, selected_content_hierarchy_child_id,
-                                                                           page_number, page_size, content_id)
+                                                                           page_number, page_size, content_id, sort_by, sort_order)
             self.data = records
             self.total = count
             self.clear_treeview()
@@ -65,16 +85,14 @@ class ListManager:
                 tag = self.get_tag(index)
                 self.tree.insert("", tk.END, iid=record.id, values=(
                     record.id,
-                    "",
-                    "",
                     record.describe,
                     get_chars_by_count(record.content),
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 ), tags=(tag,))
 
             # Update the tree
-            self.tree.update_idletasks()
-            self.tree.update()
+            #self.tree.update_idletasks()
+            #self.tree.update()
 
         # Update a single item if content_id is specified
         if content_id:
@@ -84,8 +102,6 @@ class ListManager:
                 record = records[0]
                 new_values = (
                     record.id,
-                    "",
-                    "",
                     record.describe,
                     get_chars_by_count(record.content),
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
@@ -93,14 +109,6 @@ class ListManager:
                 self.update_single_item(item_id, new_values)
 
     def update_single_item(self, item_id, new_values, img = None):
-        """
-        Updates a specific item in the Treeview with new values and ensures it is visible.
-
-        :param item_id: The unique identifier of the item to update.
-        :param new_values: A tuple of new values for the item.
-        """
-        # Update the item with new values
-
         if img is None:
             self.tree.item(item_id, values=new_values)
         else:
@@ -109,15 +117,13 @@ class ListManager:
         self.tree.see(item_id)
 
     def insert_txt_data_item(self, content_id):
-        self.style_manager.configure_text_style()
+        #self.style_manager.configure_text_style()
         records = self.content_service.load_txt_records(content_id=content_id)
         last_item = None
         for index, record in enumerate(records):
             tag = self.get_tag(index)
             last_item = self.tree.insert("", tk.END, values=(
                 record.id,
-                "",
-                "",
                 record.describe,
                 get_chars_by_count(record.content),
                 record.create_time.strftime('%Y-%m-%d %H:%M'),
@@ -128,13 +134,17 @@ class ListManager:
             self.tree.focus(last_item)
             self.tree.selection_set(last_item)
 
-    def update_data_items(self, content_id = None, item_id = None):
-        self.set_column_width(self.main_window.output_window.output_frame)
+    def update_data_items(self, content_id = None, item_id = None, sort_by = None, sort_order="asc"):
+        if not sort_by:
+            sort_by = self.order_by_column
+        if not sort_order:
+            sort_by = self.sort_order_by
+        #self.set_column_width(self.main_window.output_window.output_frame)
         txt = self.search_input_entry_text.get()
         if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
-            self.update_txt_data_items(txt, self.selected_tree_id, content_id = content_id, item_id = item_id)
+            self.update_txt_data_items(txt, self.selected_tree_id, content_id = content_id, item_id = item_id, sort_by = sort_by, sort_order = sort_order)
         else:
-            self.update_img_data_items(txt, self.selected_tree_id, content_id = content_id, item_id = item_id)
+            self.update_img_data_items(txt, self.selected_tree_id, content_id = content_id, item_id = item_id, sort_by = sort_by, sort_order = sort_order)
 
     def get_tag(self, index):
         return 'odd' if index % 2 == 0 else 'even'
@@ -157,17 +167,14 @@ class ListManager:
         item = None
         try:
             img_path = record.img_path
-            img = Image.open(img_path)
-            img = resize_image(img, (80, 80))
-            img_tk = ImageTk.PhotoImage(img)
+            img_tk = open_img_replace_if_error(img_path, '', (None, 80))
             tag = self.get_tag(index)
             item = self.tree.insert("", tk.END, text="", image=img_tk,
                              values=(
+                                 "",
                                  record.id,
-                                 "",
-                                 "",
-                                 record.describe,
                                  record.img_path,
+                                 record.describe,
                                  record.create_time.strftime('%Y-%m-%d %H:%M'),
                              ), tags=(tag,))
 
@@ -177,16 +184,16 @@ class ListManager:
             print(f"Error adding item with image {prompt}: {e}")
         return item
 
-    def update_img_data_items(self, txt, selected_content_hierarchy_child_id=None, content_id = None, item_id = None):
+    def update_img_data_items(self, txt, selected_content_hierarchy_child_id=None, content_id = None, item_id = None, sort_by = None, sort_order="asc"):
         page_number = self.current_page
         self.per_page_count = self.per_page_count_img
         page_size = self.per_page_count
-        self.style_manager.configure_image_style()
+        #self.style_manager.configure_image_style()
 
         if not content_id:
             self.clear_treeview()
             self.image_list.clear()
-            records, count = self.content_service.load_img_records_by_page(txt, selected_content_hierarchy_child_id, page_number, page_size, content_id)
+            records, count = self.content_service.load_img_records_by_page(txt, selected_content_hierarchy_child_id, page_number, page_size, content_id, sort_by, sort_order)
             self.data = records
             self.total = count
 
@@ -201,7 +208,7 @@ class ListManager:
                 return
             last_item = self.tree.get_children()[-1]
             # Scroll to the last row
-            self.tree.see(last_item)
+            #self.tree.see(last_item)
 
         # Update a single item if content_id is specified
         if content_id:
@@ -210,25 +217,20 @@ class ListManager:
             if len(records) > 0:
                 record = records[0]
                 img_path = record.img_path
-                img = Image.open(img_path)
-                img = resize_image(img, (80, 80))
-                img_tk = ImageTk.PhotoImage(img)
-
+                img_tk = open_img_replace_if_error(img_path, '', (None, 80))
                 self.image_list.append(img_tk)
 
                 new_values = (
                     record.id,
-                    "",
-                    "",
                     record.describe,
                     record.img_path,
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 )
 
-                self.update_single_item(item_id, new_values, img_tk)
+                self.tree.item(item_id, image=img_tk, values=new_values)
 
     def insert_img_data_item(self, content_id):
-        self.style_manager.configure_image_style()
+        #self.style_manager.configure_image_style()
         records = self.content_service.load_img_records(content_id=content_id)
         index = 0
         last_item = None
@@ -258,18 +260,43 @@ class ListManager:
     def on_button_click(self, index):
         print(f"Button clicked for item {index}")
 
-    def on_update_list(self, event, *args):
-        self.update_treeview()
+    def on_update_list(self, *args):
+        self.current_page = 1
+        self.thread_update_list()
 
-    def on_insert_item(self, event):
-        data = self.tree.data
-        content_id = data.get("content_id")
-        view_type = self.app_config.get(TYPE_OPTION_KEY_NAME, '0')
+    def thread_update_list(self, sort_by = None, sort_order="asc"):
+        threading.Thread(target=lambda: self.update_treeview(sort_by, sort_order)).start()
+
+    def on_change_type_update_list(self, type = None):
+        self.set_tree_by_type_option(type)
+
+        self.bind_tree_events()
+        self.thread_update_list()
+
+    def set_tree_by_type_option(self, type = None):
+        self.main_window.display_frame.tree.pack_forget()
+        if type is None:
+            type = self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+        if type == TYPE_OPTION_TXT_KEY:
+            self.tree = self.main_window.display_frame.txt_tree
+
+        else:
+            self.tree = self.main_window.display_frame.img_tree
+        self.main_window.display_frame.tree = self.tree
+        self.tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        #self.main_window.display_frame.pagination_frame.pack(side=tk.BOTTOM, anchor = tk.W, fill=tk.X)
+
+
+    def on_insert_items(self, content_ids):
+        view_type = self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
         self.set_column_width(self.main_window.output_window.output_frame)
-        if self.app_config.get(TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_TXT_KEY:
-            self.insert_txt_data_item(content_id)
-        elif view_type == ViewType.IMG:
-            self.insert_img_data_item(content_id)
+        for content_id in content_ids:
+            if view_type == TYPE_OPTION_TXT_KEY:
+                self.insert_txt_data_item(content_id)
+            else:
+                self.insert_img_data_item(content_id)
+
+
 
     def on_press_tree_item(self, tree_id):
         self.selected_tree_id = tree_id
@@ -282,9 +309,61 @@ class ListManager:
         for item in self.tree.get_children():
             self.tree.delete(item)
 
+    def sort_column(self, col):
 
-    def update_treeview(self):
-        self.update_data_items()
+        # 切换当前列的排序顺序
+        self.sort_reverse[col] = not self.sort_reverse[col]
+        sort_order = "desc" if self.sort_reverse[col] else "asc"
+        self.order_by_column = col
+        self.sort_order_by = sort_order
+        # 重新加载数据
+        self.thread_update_list(col, sort_order)
+
+    def on_treeview_click(self, event):
+        """处理点击列头事件."""
+        region = self.tree.identify_region(event.x, event.y)
+
+        # 只处理列头的点击
+        if region == "heading":
+            column = self.tree.identify_column(event.x)
+
+            if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+                # 根据列的索引找到列名，Treeview列索引是从1开始，列名是从0开始
+                if column == "#1":
+                    self.sort_column("describe")
+                elif column == "#2":
+                    self.sort_column("content")
+                elif column == "#3":
+                    self.sort_column("create_time")
+            else:
+                if column == "#1":
+                    self.sort_column("describe")
+                elif column == "#2":
+                    self.sort_column("create_time")
+
+
+    def update_scrollbar_visibility(self, event=None):
+        """根据内容更新滚动条的可见性"""
+        if not self.tree.get_children():
+            self.main_window.display_frame.tree_txt_scrollbar.pack_forget()  # 隐藏滚动条
+            self.main_window.display_frame.tree_img_scrollbar.pack_forget()  # 隐藏滚动条
+            return
+        last_item = self.tree.get_children()[-1]  # 获取最后一项的 ID
+        bx = self.tree.bbox(last_item)
+        if bx == '' or self.tree.winfo_height() < bx[3]:
+            if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+                self.main_window.display_frame.tree_img_scrollbar.pack_forget()  # 隐藏滚动条
+                self.main_window.display_frame.tree_txt_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)  # 显示滚动条
+            else:
+                self.main_window.display_frame.tree_txt_scrollbar.pack_forget()  # 隐藏滚动条
+                self.main_window.display_frame.tree_img_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)  # 显示滚动条
+        else:
+            self.main_window.display_frame.tree_txt_scrollbar.pack_forget()  # 隐藏滚动条
+            self.main_window.display_frame.tree_img_scrollbar.pack_forget()  # 隐藏滚动条
+
+
+    def update_treeview(self, sort_by = None, sort_order="asc"):
+        self.update_data_items(sort_by = sort_by, sort_order = sort_order)
 
         if self.total <= self.per_page_count:
 
@@ -293,14 +372,13 @@ class ListManager:
             # 分页显示数据
             self.pagination_frame.pack(side=tk.BOTTOM, fill=tk.X)
             # 显示分页控件
-            self.main_window.display_frame.page_label.config(text=f"Page {self.current_page} of {self.total_pages()}")
+            self.main_window.display_frame.page_label.config(text=f" {self.current_page} / {self.total_pages()} ")
             # 启用或禁用按钮
             self.main_window.display_frame.prev_button.config(state=tk.NORMAL if self.current_page > 1 else tk.DISABLED)
             self.main_window.display_frame.next_button.config(state=tk.NORMAL if self.current_page < self.total_pages() else tk.DISABLED)
+            self.main_window.display_frame.total_label.config(text=f" 共 {self.total} 条")
 
-            # self.paned_window.update_idletasks()  # Ensure layout is updated before placing sash
-            # total_width = self.paned_window.winfo_width()  # Get the total width of the PanedWindow
-            # self.paned_window.sash_place(0, 150, 0)  # Place the sash to 30% of the total width
+        self.update_scrollbar_visibility()
 
     def total_pages(self):
         return (self.total + self.per_page_count - 1) // self.per_page_count
@@ -308,20 +386,28 @@ class ListManager:
     def previous_page(self, event):
         if self.current_page > 1:
             self.current_page -= 1
-            self.update_treeview()
+            self.thread_update_list()
 
     def next_page(self, event):
         if self.current_page < self.total_pages():
             self.current_page += 1
-            self.update_treeview()
+            self.thread_update_list()
+
+    def bind_tree_events(self):
+        self.tree.bind("<Motion>", self.on_mouse_move)
+
+        self.tree.bind("<Button-1>", self.on_treeview_click)
+        self.tree.bind("<Configure>", lambda event: self.update_scrollbar_visibility())
+
 
     def bind_events(self):
-        self.tree.bind("<Motion>", self.on_mouse_move)
-        self.tree.bind('<<InsertListItem>>', self.on_insert_item)
-        self.tree.bind('<<UpdateList>>', self.on_update_list)
+        self.bind_tree_events()
+        event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
         self.search_input_entry_text.trace('w', self.on_update_list)
         self.main_window.directory_tree.tree.bind('<<TreeviewSelect>>', self.on_update_list)
+        event_bus.subscribe('InsertListItems', self.on_insert_items)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
         event_bus.subscribe('UpdateListSingleItem', self.update_list_single_item)
         self.main_window.display_frame.prev_button.bind("<Button-1>", self.previous_page)
         self.main_window.display_frame.next_button.bind("<Button-1>", self.next_page)
+

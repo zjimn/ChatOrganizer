@@ -42,6 +42,7 @@ class MainWindow:
         self.paned_window.add(self.display_frame.right_frame, stretch="always")
 
         self.paned_window.update_idletasks()  # Ensure layout is updated before placing sash
+        self.paned_window.sash_place(0, 150, 0)  # Place the sash to 30% of the total width
 
 
 if __name__ == "__main__":

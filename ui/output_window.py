@@ -12,7 +12,7 @@ class OutputWindow:
 
         x = parent.winfo_x()
         y = parent.winfo_y()
-        self.output_window.geometry(f"{800}x{600}+{x + 50}+{y + 50}")
+        self.output_window.geometry(f"{800}x{620}+{x + 50}+{y + 50}")
 
         self.output_frame = tk.Frame(self.output_window)
         self.output_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 20))

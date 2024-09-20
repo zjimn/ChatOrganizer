@@ -21,7 +21,11 @@ class EventBus:
     def publish(self, event_type, **kwargs):
         if event_type in self.listeners:
             for callback in self.listeners[event_type]:
-                callback(**kwargs)
+                if kwargs:
+                    callback(**kwargs)
+                else:
+                    callback()
+
 
 # Global instance of the event bus
 event_bus = EventBus()

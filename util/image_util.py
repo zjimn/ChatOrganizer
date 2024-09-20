@@ -68,3 +68,17 @@ def resize_image_by_path(img_path, target_size):
     img = Image.open(img_path)
 
     return resize_image(img, target_size)
+
+
+def open_img_replace_if_error(img_path, replace_img, size):
+    if not img_path or img_path == '':
+        return replace_img
+    try:
+        img = Image.open(img_path)
+        img = resize_image(img, size)
+        img_tk = ImageTk.PhotoImage(img)
+    except Exception as e:
+        img_tk = replace_img
+        print(f"Error adding item with image: {e}")
+
+    return img_tk

@@ -2,8 +2,9 @@ import tkinter as tk
 
 from config import constant
 from config.app_config import AppConfig
-from config.constant import TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME
+from config.constant import TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
 from config.enum import ViewType
+from event.event_bus import event_bus
 
 
 class InputManager:
@@ -18,19 +19,13 @@ class InputManager:
     def on_type_option_change(self):
         """处理下拉列表选择变化事件。"""
         self.update_option()
-
         if self.input_frame.option_var.get() == self.main_window.input_frame.type_options[1]:
-            self.app_config.set(TYPE_OPTION_KEY_NAME, '1')
+            self.app_config.set(TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY)
+            type = TYPE_OPTION_IMG_KEY
         else:
-            self.app_config.set(TYPE_OPTION_KEY_NAME, '0')
-        self.show_tree()
-        self.root.event_generate('<<CloseOutputWindow>>')
-
-    def show_tree(self):
-        view_type = self.main_window.view_type
-        txt = self.main_window.display_frame.search_input_text.get()
-        self.main_window.display_frame.tree.data = {"search": txt, "type": view_type}
-        self.main_window.display_frame.tree.event_generate('<<UpdateList>>')
+            self.app_config.set(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+            type = TYPE_OPTION_TXT_KEY
+        event_bus.publish('ChangeTypeUpdateList', type = type)
 
     def init_option(self):
         option_index = self.app_config.get(TYPE_OPTION_KEY_NAME, "0")

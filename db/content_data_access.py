@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple, Any
 
-from sqlalchemy import Column, Tuple, func, select
+from sqlalchemy import Column, Tuple, func, select, desc, asc
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload, Query, aliased
 from sqlalchemy.sql.operators import like_op
@@ -33,6 +33,18 @@ class ContentDataAccess:
             content=content,
             img_path=img_path
         )
+        try:
+            self.session.add(new_data)
+            self.session.commit()
+            return new_data.id
+        except Exception as e:
+            self.session.rollback()
+            print(f"An error occurred: {e}")
+            return None
+
+    def insert_data_by_object(self, data: ContentData) -> int | None:
+        """Insert data into the ContentData table."""
+        new_data = data
         try:
             self.session.add(new_data)
             self.session.commit()
@@ -90,21 +102,7 @@ class ContentDataAccess:
         """
         content_hierarchy_data_access = ContentHierarchyDataAccess()
 
-        # Step 1: Search for Dialogue records with the search term in describe or message
-        dialogue_ids_query = (
-            self.session.query(Dialogue.content_id)
-            .filter(
-                Dialogue.message.like(f"%{search}%"),
-                Dialogue.delete_time.is_(None),
-                or_(
-                    content_id is None,
-                    Dialogue.content_id == content_id
-                )
-            )
-            .distinct()
-        )
-        dialogue_ids = dialogue_ids_query.all()
-        dialogue_content_ids = [dialogue[0] for dialogue in dialogue_ids]
+
 
         # Step 2: Determine child IDs if provided
         child_ids = set()
@@ -112,29 +110,70 @@ class ContentDataAccess:
             all_children = content_hierarchy_data_access.get_all_children_by_parent_id(content_hierarchy_child_id)
             child_ids = {child.child_id for child in all_children}
 
-        # Build the base ContentData query
-        base_query = (
-            self.session.query(ContentData)
-            .filter(
-                ContentData.type == content_type,
-                ContentData.id.in_(dialogue_content_ids),
-                ContentData.delete_time.is_(None),
-                or_(
-                    ContentData.content_hierarchy_child_id.in_(child_ids),
-                    content_hierarchy_child_id is None
+        if not search or search == "":
+            base_query = (
+                self.session.query(ContentData)
+                .filter(
+                    ContentData.type == content_type,
+                    ContentData.delete_time.is_(None),
+                    or_(
+                        ContentData.content_hierarchy_child_id.in_(child_ids),
+                        content_hierarchy_child_id is None
+                    ),
+                    or_(
+                        content_id is None,
+                        ContentData.id == content_id
+                    )
                 )
             )
-        )
+        else:
+            # Step 1: Search for Dialogue records with the search term in describe or message
+            dialogue_ids_query = (
+                self.session.query(Dialogue.content_id)
+                .filter(
+                    Dialogue.message.like(f"%{search}%"),
+                    Dialogue.delete_time.is_(None),
+                    or_(
+                        content_id is None,
+                        Dialogue.content_id == content_id
+                    )
+                )
+                .distinct()
+            )
+            dialogue_ids = dialogue_ids_query.all()
+            dialogue_content_ids = [dialogue[0] for dialogue in dialogue_ids]
+
+            base_query = (
+                self.session.query(ContentData)
+                .filter(
+                    ContentData.type == content_type,
+                    ContentData.id.in_(dialogue_content_ids),
+                    ContentData.delete_time.is_(None),
+                    or_(
+                        ContentData.content_hierarchy_child_id.in_(child_ids),
+                        content_hierarchy_child_id is None
+                    )
+                )
+            )
 
         return base_query
 
-    def get_data_by_describe_or_content(self, search: str, content_type, content_hierarchy_child_id=None, content_id=None) -> List[ContentData]:
+    def get_data_by_describe_or_content(self, search: str, content_type, content_hierarchy_child_id=None, content_id=None, sort_by = None, sort_order="asc") -> List[ContentData]:
         """
         Retrieve all TXT records where describe or content in Dialogue contains the search term,
         and delete_time in ContentData is None.
         """
         try:
             base_query = self._get_base_query(search, content_type, content_hierarchy_child_id, content_id)
+            # 动态排序
+            if sort_by is not None:
+                # 获取排序字段，升序或降序
+                sort_column = getattr(ContentData, sort_by, None)  # 根据字段名称获取对应的列
+                if sort_column:
+                    if sort_order == "desc":
+                        base_query = base_query.order_by(desc(sort_column))
+                    else:
+                        base_query = base_query.order_by(asc(sort_column))
             return base_query.all()
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -142,7 +181,7 @@ class ContentDataAccess:
 
     def get_data_by_describe_or_content_by_page(self, search: str, content_type, page_number: int = 1,
                                                 page_size: int = 20,
-                                                content_hierarchy_child_id=None, content_id=None) -> tuple[
+                                                content_hierarchy_child_id=None, content_id=None, sort_by = None, sort_order="asc") -> tuple[
         list[Any], int]:
         """
         Retrieve paginated TXT records with the total count.
@@ -150,6 +189,15 @@ class ContentDataAccess:
         try:
             # Get the base query
             base_query = self._get_base_query(search, content_type, content_hierarchy_child_id, content_id)
+            # 动态排序
+            if sort_by is not None:
+                # 获取排序字段，升序或降序
+                sort_column = getattr(ContentData, sort_by, None)  # 根据字段名称获取对应的列
+                if sort_column:
+                    if sort_order == "desc":
+                        base_query = base_query.order_by(desc(sort_column))
+                    else:
+                        base_query = base_query.order_by(asc(sort_column))
 
             # Get total count from the base query subquery
             subquery = base_query.subquery()

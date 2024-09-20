@@ -16,7 +16,7 @@ def main():
     system_config = AppConfig()
     root = tk.Tk()
     root.title("GPT Completion Tool")
-    root.geometry("800x600")
+    root.geometry("800x620")
 
     main_window = MainWindow(root)
 
@@ -24,7 +24,7 @@ def main():
     main_manager = MainManager(root, main_window)
     main_manager.bind_events()
     ListManager(root, main_window)
-    TreeManager(root, main_window)
+    TreeManager(root, main_window.directory_tree.tree, main_window)
     ListEditor(root, main_window)
 
 

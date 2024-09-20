@@ -2,71 +2,113 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 
+from PIL import ImageTk
+
+from config import constant
+from ui.syle.tree_view_style_manager import TreeViewStyleManager
+from util import image_util
+
+
 class DisplayFrame:
     def __init__(self, parent):
         self.parent = parent
 
         self.right_frame = tk.Frame(parent)
 
+        closed_folder_resized = image_util.resize_image_by_path(constant.CLOSED_FOLDER_IMAGE, (20, 20))
+        self.closed_folder_resized_icon = ImageTk.PhotoImage(closed_folder_resized)
+
+        broken_img = image_util.resize_image_by_path(constant.BROKEN_IMAGE, (80, 80))
+        self.broken_img_icon = ImageTk.PhotoImage(broken_img)
+
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
         self.search_input_entry_text = tk.StringVar()
-        self.search_input_text = ttk.Entry(self.right_frame, width=50, textvariable=self.search_input_entry_text)
+        self.style.configure("Custom.TEntry", padding=(3, 5))
+        self.search_input_text = ttk.Entry(self.right_frame, width=50, style = "Custom.TEntry", textvariable=self.search_input_entry_text)
         self.search_input_text.pack(side=tk.TOP, fill=tk.X, padx=0, pady=(0, 10), anchor=tk.S)
         self.search_input_text.config(font=("Microsoft YaHei", 10))
+
 
         # 创建分页控件
         self.pagination_frame = tk.Frame(self.right_frame, borderwidth=1, relief="raised")
         self.pagination_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
-        self.prev_button = tk.Button(self.pagination_frame, text="Previous")
+        self.prev_button = tk.Button(self.pagination_frame, text="上一页")
         self.prev_button.pack(side=tk.LEFT)
 
         self.page_label = tk.Label(self.pagination_frame, text="")
         self.page_label.pack(side=tk.LEFT)
 
-        self.next_button = tk.Button(self.pagination_frame, text="Next")
+        self.next_button = tk.Button(self.pagination_frame, text="下一页")
         self.next_button.pack(side=tk.LEFT)
 
-
+        self.total_label = tk.Label(self.pagination_frame, text="")
+        self.total_label.pack(side=tk.LEFT)
 
         self.tree_frame = tk.Frame(self.right_frame)
         self.tree_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.tree = ttk.Treeview(self.tree_frame, columns=("#0","id", "img", "prompt", "content", "create_time", "operation"), style='List.Treeview')
-        self.tree.heading("#0", text="图片")
-        self.tree.heading("id", text="id")
-        self.tree.heading("img", text="图片")
-        self.tree.heading("prompt", text="描述")
-        self.tree.heading("content", text="内容")
-        self.tree.heading("create_time", text="创建时间")
-        self.tree.heading("operation", text="操作")
-        self.tree.column("#0", width=100, anchor="center")
-        self.tree.column("id", width=150, anchor="center")
-        self.tree.column("img", width=1000, anchor="center")
-        self.tree.column("prompt", width=450, anchor="center")
-        self.tree.column("content", width=450, anchor="center")
-        self.tree.column("create_time", width=150, anchor="center")
-        self.tree.column("operation", width=150, anchor="center")
+        self.tree = None
 
-        self.tree_scrollbar = tk.Scrollbar(self.tree, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.tree.configure(yscrollcommand=self.tree_scrollbar.set)
-        self.tree.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        self.txt_tree = ttk.Treeview(self.tree_frame, columns=("id", "describe", "content", "create_time"), style='Txt.List.Treeview')
+        self.txt_tree.heading("id", text="id")
+        self.txt_tree.heading("describe", text="描述")
+        self.txt_tree.heading("content", text="内容")
+        self.txt_tree.heading("create_time", text="创建时间")
+        self.txt_tree.column("id", width=0, anchor="center")
+        self.txt_tree.column("describe", width=150, anchor="center")
+        self.txt_tree.column("content", width=200, anchor="center")
+        self.txt_tree.column("create_time", width=100, anchor="center")
+
+
+
+        self.tree_txt_scrollbar = tk.Scrollbar(self.txt_tree, orient=tk.VERTICAL, command=self.txt_tree.yview)
+        self.tree_txt_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.txt_tree.configure(yscrollcommand=self.tree_txt_scrollbar.set)
+        self.txt_tree.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        self.style_manager = TreeViewStyleManager(self.txt_tree)
+        self.style_manager.configure_text_style()
+        self.tree = self.txt_tree
+
+        self.img_tree = ttk.Treeview(self.tree_frame, columns=("#0","id", "img", "describe", "create_time"), style='Img.List.Treeview')
+        self.img_tree.heading("#0", text="图片")
+        self.img_tree.heading("id", text="id")
+        self.img_tree.heading("img", text="图片")
+        self.img_tree.heading("describe", text="描述")
+        self.img_tree.heading("create_time", text="创建时间")
+        self.img_tree.column("#0", width=100, anchor="center")
+        self.img_tree.column("id", width=0, anchor="center")
+        self.img_tree.column("img", width=0, anchor="center")
+        self.img_tree.column("describe", width=250, anchor="center")
+        self.img_tree.column("create_time", width=100, anchor="center")
+
+        self.tree_img_scrollbar = tk.Scrollbar(self.img_tree, orient=tk.VERTICAL, command=self.img_tree.yview)
+        self.tree_img_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.img_tree.configure(yscrollcommand=self.tree_img_scrollbar.set)
+        self.style_manager = TreeViewStyleManager(self.img_tree)
+        self.style_manager.configure_image_style()
+        self.img_tree.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        self.img_tree.pack_forget()
+        self.tree_img_scrollbar.pack_forget()
+
 
         self.bottom_frame = tk.Frame(self.right_frame, height = 0)
         self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH)
 
+    def set_txt_tree(self):
+        self.tree = self.txt_tree
 
-        # Add sample data
-        #self.insert_sample_data()
-
+    def set_img_tree(self):
+        self.tree = self.img_tree
 
     def insert_sample_data(self):
         # Sample data to populate the tree ui
         sample_data = [
-            {"id": "1", "img": "Image1.png", "prompt": "Sample prompt 1", "content": "Sample content 1", "create_time": "2024-09-01", "operation": "Edit"},
-            {"id": "2", "img": "Image2.png", "prompt": "Sample prompt 2", "content": "Sample content 2", "create_time": "2024-09-02", "operation": "Delete"},
+            {"id": "1", "img": "Image1.png", "describe": "Sample describe 1", "content": "Sample content 1", "create_time": "2024-09-01", "operation": "Edit"},
+            {"id": "2", "img": "Image2.png", "describe": "Sample describe 2", "content": "Sample content 2", "create_time": "2024-09-02", "operation": "Delete"},
             # Add more sample data as needed
         ]
 
         for item in sample_data:
-            self.tree.insert("", tk.END, values=(item["id"], item["img"], item["prompt"], item["content"], item["create_time"], item["operation"]))
+            self.tree.insert("", tk.END, values=(item["id"], item["img"], item["describe"], item["content"], item["create_time"], item["operation"]))

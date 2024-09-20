@@ -33,6 +33,18 @@ class DialogueDataAccess:
             self.session.rollback()
             print(f"An error occurred: {e}")
 
+    def insert_data_by_object(self, data: Dialogue) -> int | None:
+        """Insert data into the ContentData table."""
+        new_data = data
+        try:
+            self.session.add(new_data)
+            self.session.commit()
+            return new_data.id
+        except Exception as e:
+            self.session.rollback()
+            print(f"An error occurred: {e}")
+            return None
+
     def get_data_by_id(self, data_id: int) -> Optional[Dialogue]:
         """Retrieve a record by its ID."""
         try:

@@ -1,16 +1,25 @@
+import time
 from datetime import datetime
+from time import sleep
 from tkinter import *
 from tkinter import messagebox, ttk
 from PIL import Image, ImageTk
 
 import tkinter as tk
 
-from config.constant import USER_NAME, ASSISTANT_NAME
+from config.app_config import AppConfig
+from config.constant import USER_NAME, ASSISTANT_NAME, TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, \
+    LAST_SELECTED_TREE_ID_NAME
 from db.content_data_access import ContentDataAccess
 from db.dialogue_data_access import DialogueDataAccess
 from db.models import Dialogue
+from event.editor_tree_manager import EditorTreeManager
 from event.event_bus import event_bus
+from event.tree_manager import TreeManager
 from service.content_service import ContentService
+from ui.directory_tree import DirectoryTree
+from ui.editor_directory_tree import EditorDirectoryTree
+from ui.syle.tree_view_style_manager import TreeViewStyleManager
 from util import image_util
 from util.ImageViewer import ImageViewer
 from util.window_util import center_window
@@ -19,6 +28,12 @@ from util.window_util import center_window
 class ListEditor:
     def __init__(self, parent, main_window = None):
 
+        self.insert_finished = None
+        self.top = None
+        self.button_frame = None
+        self.cancel_button = None
+        self.submit_button = None
+        self.tree = None
         self.selected_item_id = None
         self.describe_input = None
         self.description_frame = None
@@ -29,16 +44,19 @@ class ListEditor:
         self.style = ttk.Style()
         self.style.theme_use('clam')
         self.main_window = main_window
-        self.tree = main_window.display_frame.tree
+        self.list_tree = main_window.display_frame.tree
         self.content_service = ContentService()
+        self.app_config = AppConfig()
         # 创建上下文菜单
         self.context_menu = Menu(parent, tearoff=0)
-        self.context_menu.add_command(label="修改项目", command=self.modify_selected_item)
-        self.context_menu.add_command(label="删除项目", command=self.remove_selected_item)
+        self.context_menu.add_command(label="复制到", command=lambda: self.move_or_copy_selected_item(is_move = False))
+        self.context_menu.add_command(label="移动到", command=lambda: self.move_or_copy_selected_item(is_move = True))
+        self.context_menu.add_command(label="修改项", command=self.modify_selected_item)
+        self.context_menu.add_command(label="删除项", command=self.remove_selected_item)
         self.dialogue_frames = []
         self.dialogue_image_labels = []
         # 绑定右键点击事件来显示上下文菜单
-        self.tree.bind("<Button-3>", self.show_context_menu)
+        self.bind_events()
 
         # 记录最后的右键点击事件位置
         self.last_event = None
@@ -46,18 +64,32 @@ class ListEditor:
         self.enable_edit_button = False
         self.content_service = ContentService()
 
+    def bind_events(self):
+        self.list_tree.bind("<Button-3>", self.show_context_menu)
+        event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
+
+
+
+    def bind_tree_events(self):
+        self.list_tree.bind("<Button-3>", self.show_context_menu)
+
+    def on_change_type_update_list(self, **args):
+        self.list_tree = self.main_window.display_frame.tree
+        self.bind_tree_events()
+
+
     def show_context_menu(self, event):
 
         # 弹出菜单项
-        iid = self.tree.identify_row(event.y)
+        iid = self.list_tree.identify_row(event.y)
         if iid:
-            selected_item_ids = self.tree.selection()
+            selected_item_ids = self.list_tree.selection()
             if len(selected_item_ids) <= 1:
-                self.context_menu.entryconfig(0, state=NORMAL)
-                self.tree.selection_set(iid)
+                self.context_menu.entryconfig(2, state=NORMAL)
+                self.list_tree.selection_set(iid)
                 self.selected_item_id = iid
             else:
-                self.context_menu.entryconfig(0, state=DISABLED)
+                self.context_menu.entryconfig(2, state=DISABLED)
             self.context_menu.post(event.x_root, event.y_root)
             self.last_event = event
 
@@ -92,6 +124,78 @@ class ListEditor:
         if self.edit_window:
             self.edit_window.destroy()  # 关闭窗口
 
+    def copy_selected_item(self):
+        pass
+
+    def move_or_copy_selected_item(self, is_move):
+        self.close_and_clear_data()
+        self.top = tk.Toplevel(self.parent)
+        if is_move:
+            self.top.title("选择移动到的层级")
+        else:
+            self.top.title("选择复制到的层级")
+
+        self.top.geometry("300x300")
+        self.top.grab_set()
+        center_window(self.top, 300, 300)
+        editor_directory_tree = EditorDirectoryTree(self.top)
+        self.tree = editor_directory_tree.tree
+        # 创建一个底部框架用于放置按钮
+        button_frame = tk.Frame(self.top)
+        button_frame.pack(side=tk.BOTTOM, anchor='se', pady=10)  # 放在右下角
+
+        cancel_button = tk.Button(button_frame, text="取消", width=6, command=self.close_and_clear_data)
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+
+        content_ids, tree_id = self.get_selected_list_content_ids_and_tree_id()
+
+        self.submit_button = tk.Button(button_frame, text="确定", width=6, command=lambda: self.move_or_copy_selected(is_move, content_ids, tree_id))
+
+        self.submit_button.pack(side=tk.RIGHT, padx=5)  # 在确定按钮的左边
+
+
+        EditorTreeManager(self.parent, editor_directory_tree,  1, tree_id)
+
+    def move_or_copy_selected(self, is_move, content_ids, tree_id):
+        """处理移动选择的项目"""
+
+        selected_tree_items = self.tree.selection()
+        if selected_tree_items:
+            target_tree_id = selected_tree_items[0]
+            if tree_id != target_tree_id:
+                event_bus.publish("MoveToTargetTree", tree_id=target_tree_id)
+                self.parent.after(300, lambda: event_bus.publish("InsertListItems", content_ids=content_ids))
+                if is_move:
+                    self.parent.after(530, lambda: self.content_service.move_to_target_tree(content_ids, target_tree_id))
+                else:
+                    self.parent.after(530, lambda: self.content_service.copy_to_target_tree(content_ids, target_tree_id))
+
+            self.close_and_clear_data()
+        else:
+            messagebox.showwarning("警告", "请先选择一个层级。")
+
+    def get_selected_list_content_ids_and_tree_id(self):
+        selected_items = self.list_tree.selection()
+        selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
+        result = []
+        for item in selected_items:
+            list_item_values = self.list_tree.item(item, 'values')  # Get the values of the selected item
+
+            if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+                content_id = list_item_values[0]
+            else:
+                content_id = list_item_values[1]
+            result.append(content_id)
+        return result, selected_tree_id
+
+    def close_and_clear_data(self):
+
+        if self.tree and self.tree.winfo_exists():
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+        if self.top:
+            self.top.destroy()
+            self.tree.destroy()
 
     def modify_selected_item(self):
         if not self.last_event:
@@ -102,6 +206,7 @@ class ListEditor:
         edit_window.title("编辑项")
         edit_window.geometry("600x500")  # 设置窗口大小
         self.edit_window = edit_window
+        self.edit_window.grab_set()
         # 将窗口定位到鼠标点击的位置
         self.center_window(edit_window, 600, 500)
 
@@ -113,7 +218,7 @@ class ListEditor:
             update_datas = []
             content_id = self.description_frame.widgets['content_id_label'].cget('text')
             describe = self.description_frame.widgets['describe_input'].get("1.0", tk.END).strip()
-            first_img_path = None
+            first_img_path = ''
             for frame in self.dialogue_frames:
                 delete_time = None
                 if not frame.winfo_exists():
@@ -126,7 +231,7 @@ class ListEditor:
                 user_input_content = frame.widgets['user_input'].get("1.0", tk.END).strip()
                 assistant_input_content = frame.widgets['assistant_input'].get("1.0", tk.END).strip()
                 assistant_img_path = frame.widgets['assistant_image_path_label'].cget('text')
-                if first_img_path is None:
+                if first_img_path == '':
                     first_img_path = assistant_img_path
                 user_dialogue = Dialogue(
                     id=user_id,
@@ -169,9 +274,13 @@ class ListEditor:
         description_label.pack(side=TOP, anchor=W)
 
         # 单行文本输入框
-        selected_item = self.tree.selection()[0]
-        list_item_values = self.tree.item(selected_item, 'values')  # Get the values of the selected item
-        content_id = list_item_values[0]
+        selected_item = self.list_tree.selection()[0]
+        list_item_values = self.list_tree.item(selected_item, 'values')  # Get the values of the selected item
+
+        if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            content_id = list_item_values[0]
+        else:
+            content_id = list_item_values[1]
 
         # Hidden label to store data[index].id
         hidden_content_id_label = Label(self.description_frame, text=content_id,
@@ -308,14 +417,14 @@ class ListEditor:
 
 
     def remove_selected_item(self):
-        selected_items = self.tree.selection()
+        selected_items = self.list_tree.selection()
         result = messagebox.askyesno("删除数据", "确定需要删除所选数据吗?")
         if result:
             with ContentDataAccess() as cda:
                 for item in selected_items:
-                    values = self.tree.item(item, 'values')
+                    values = self.list_tree.item(item, 'values')
                     cda.delete_data(values[0])
-                    self.tree.delete(item)
+                    self.list_tree.delete(item)
 
 
 

@@ -77,7 +77,7 @@ class OutputManager:
                     user_content = f"{message}\n\n"
                 else:
                     user_content = f"\n{message}\n\n"
-                font = ("Helvetica", 15, "bold")
+                font = ("微软雅黑", 15, "bold")
                 self.text_inserter.insert_normal(user_content, font)
             main_window.output_window.output_text.config(state=tk.NORMAL)
             #self.main_window.output_window.output_text.insert(tk.END, message)
@@ -104,7 +104,7 @@ class OutputManager:
         response_content = f"{response_message}\n"
         # e8f0fe
         #self.text_inserter.set_color("#e8f0fe")
-        font = ("Helvetica", 15, "bold")
+        font = ("微软雅黑", 15, "bold")
         #self.main_window.output_window.output_text.insert(tk.END, user_content)
         if user_message is not None:
             self.text_inserter.insert_normal(user_content, font)
@@ -205,7 +205,7 @@ class OutputManager:
 
             txt = f"{item.message}\n"
 
-            font_name = 'Helvetica'
+            font_name = '微软雅黑'
             font_size = 15
             text_label = tk.Label(
                 frame,
@@ -364,13 +364,17 @@ class OutputManager:
     def close_output_window(self):
         self.main_window.output_window.output_window.withdraw()
         self.session_id = None
+        self.txt_generator.cancel_request()
+        self.img_generator.cancel_request()
         self.img_generator.clear_history()
         self.txt_generator.clear_history()
 
+    def on_change_type_update_list(self, **args):
+        self.close_output_window()
+        self.bind_tree_events()
 
     def insert_tree_item(self, content_id):
-        self.main_window.display_frame.tree.data = {"content_id": content_id}
-        self.main_window.display_frame.tree.event_generate('<<InsertListItem>>')
+        event_bus.publish("InsertListItems", content_ids=[content_id])
 
     def clear_output_window_canvas_data(self):
         if self.dialog_labels is None:
@@ -395,8 +399,8 @@ class OutputManager:
         item = main_window.display_frame.tree.selection()[0]  # Get the selected item
         values = main_window.display_frame.tree.item(item, 'values')  # Get the values of the selected item
         # show_text(main_window, values[0], root)
-        self.session_id = values[0]
         if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            self.session_id = values[0]
             self.set_output_text_default_background()
             data = self.content_service.load_txt_dialogs(self.session_id)
             self.txt_generator.clear_history()
@@ -405,6 +409,7 @@ class OutputManager:
 
             self.show_text(main_window, data)
         elif main_window.view_type == ViewType.IMG:
+            self.session_id = values[1]
             dialogs = self.content_service.load_img_dialogs(self.session_id)
             self.img_generator.clear_history()
             for item in dialogs:
@@ -422,7 +427,12 @@ class OutputManager:
         if self.img_generator:
             self.img_generator.cancel_request()
 
+    def bind_tree_events(self):
+        self.main_window.display_frame.tree.bind("<Double-1>", lambda event: self.on_item_double_click(event, self.main_window, self.root))
+
+
     def bind_events(self):
+        self.bind_tree_events()
         self.output_window.output_window.protocol("WM_DELETE_WINDOW", self.on_close_output_window)
         self.output_window.output_window.bind("<MouseWheel>", self.on_mouse_wheel)
         self.output_window.output_text.vbar.bind("<B1-Motion>", lambda event: self.on_output_text_scroll_drag(event))
@@ -432,7 +442,6 @@ class OutputManager:
         self.output_window.output_window_canvas.bind_all("<MouseWheel>", self.on_output_window_canvas_mouse_wheel)
         #self.main_window.output_window.output_window.bind('<<TreeItemPress>>', self.on_press_tree_item)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
-        self.main_window.display_frame.tree.bind("<Double-1>", lambda event: self.on_item_double_click(event, self.main_window, self.root))
+        event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
         self.root.bind('<<SubmitRequest>>', lambda event: self.thread_submit(event))
         self.root.bind('<<CancelRequest>>', lambda event: self.cancel_request(event))
-        self.root.bind('<<CloseOutputWindow>>', lambda event: self.close_output_window())
