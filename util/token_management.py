@@ -49,12 +49,6 @@ class TokenManager:
     def get_manage_img_history(self):
         return "\n".join(self.conversation_img_history)
 
-    def remove_first_line(self, text):
-        lines = text.splitlines()
-        if lines:
-            lines.pop(0)
-        return '\n'.join(lines)
-
 
 if __name__ == "__main__":
     token_manager = TokenManager(20)

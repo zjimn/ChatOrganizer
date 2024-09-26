@@ -17,7 +17,6 @@ class EditorTreeManager:
         self.style = ttk.Style()
         self.style_manager = TreeViewStyleManager(self.tree_view)
         self.style_manager.set_list_editor_tree_style()
-        self.tree_item_press_event = "<<TreeItemPress>>"
         self.update_tree_from_db()
         self.set_default_selected(default_selected_item, expand_item)
         self.bind_events()

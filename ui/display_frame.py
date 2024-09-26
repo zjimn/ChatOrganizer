@@ -74,20 +74,3 @@ class DisplayFrame:
         self.tree_img_scrollbar.pack_forget()
         self.bottom_frame = tk.Frame(self.right_frame, height=0)
         self.bottom_frame.pack(side=tk.TOP, fill=tk.BOTH)
-
-    def set_txt_tree(self):
-        self.tree = self.txt_tree
-
-    def set_img_tree(self):
-        self.tree = self.img_tree
-
-    def insert_sample_data(self):
-        sample_data = [
-            {"id": "1", "img": "Image1.png", "describe": "Sample describe 1", "content": "Sample content 1",
-             "create_time": "2024-09-01", "operation": "Edit"},
-            {"id": "2", "img": "Image2.png", "describe": "Sample describe 2", "content": "Sample content 2",
-             "create_time": "2024-09-02", "operation": "Delete"},
-        ]
-        for item in sample_data:
-            self.tree.insert("", tk.END, values=(
-                item["id"], item["img"], item["describe"], item["content"], item["create_time"], item["operation"]))

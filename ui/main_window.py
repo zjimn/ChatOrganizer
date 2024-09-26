@@ -18,7 +18,6 @@ class MainWindow:
         self.input_frame = None
         self.directory_tree = None
         self.view_type = ViewType.TXT
-        self.data_manager = None
         self.create_ui(root)
 
     def create_ui(self, root):

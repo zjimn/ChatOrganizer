@@ -37,7 +37,6 @@ class OutputManager:
         self.zoom_levels = []
         self.dialog_images = []
         self.set_output_window_pos()
-        self.app_config = AppConfig()
         self.img_generator = OpenaiImageApi()
         self.txt_generator = OpenaiTextApi()
         self.content_service = ContentService()
@@ -163,7 +162,6 @@ class OutputManager:
             self.clear_output_window_canvas_data()
         for index, item in enumerate(data):
             image_path = item.img_path
-            frame_height = 400
             frame_width = 600
             img = None
             is_img = True

@@ -7,7 +7,6 @@ from config.constant import TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, LAST_LIST
     LAST_LIST_SORT_ORDER_BY, PER_PAGE_COUNT_TXT, PER_PAGE_COUNT_IMG
 from event.event_bus import event_bus
 from service.content_service import ContentService
-from ui.syle.tree_view_style_manager import TreeViewStyleManager
 from util.image_util import open_img_replace_if_error
 from util.str_util import get_chars_by_count
 
@@ -28,7 +27,6 @@ class ListManager:
         self.set_tree_by_type_option()
         self.pagination_frame = main_window.display_frame.pagination_frame
         self.search_input_entry_text = main_window.display_frame.search_input_entry_text
-        self.style_manager = TreeViewStyleManager(self.tree)
         self.image_list = []
         self.context_menu = tk.Menu(self.tree, tearoff=0)
         self.content_service = ContentService()

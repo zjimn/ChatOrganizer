@@ -21,7 +21,6 @@ from util.window_util import center_window
 
 class ListEditor:
     def __init__(self, main_window=None):
-        self.insert_finished = None
         self.top = None
         self.button_frame = None
         self.cancel_button = None
@@ -49,7 +48,6 @@ class ListEditor:
         self.bind_events()
         self.last_event = None
         self.enable_edit_button = False
-        self.content_service = ContentService()
 
     def bind_events(self):
         self.list_tree.bind("<Button-3>", self.show_context_menu)

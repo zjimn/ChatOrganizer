@@ -12,15 +12,10 @@ class TreeManager:
     def __init__(self, main_window):
         self.root = main_window.root
         self.current_item = None
-        self.pre_selected_item = None
         self.main_window = main_window
         self.tree_view = main_window.directory_tree.tree
         self.app_config = AppConfig()
         self._setup_context_menu()
-        self.style = ttk.Style()
-        self.style_manager = TreeViewStyleManager(self.tree_view)
-        self.style_manager.set_tree_style()
-        self.tree_item_press_event = "<<TreeItemPress>>"
         self.update_tree_from_db()
         self.dragged_item = None
         self.floating_label = None
