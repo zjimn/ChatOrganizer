@@ -10,6 +10,8 @@ from event.list_editor import ListEditor
 
 from ui.main_window import MainWindow
 from event.list_manager import ListManager  # Import the class
+from util.window_util import center_window
+
 
 def main():
     init_db()
@@ -17,6 +19,7 @@ def main():
     root = tk.Tk()
     root.title("GPT Completion Tool")
     root.geometry("800x620")
+    center_window(root, 800, 630)
 
     main_window = MainWindow(root)
 
@@ -24,7 +27,7 @@ def main():
     main_manager = MainManager(root, main_window)
     main_manager.bind_events()
     ListManager(root, main_window)
-    TreeManager(root, main_window.directory_tree.tree, main_window)
+    TreeManager(root, main_window)
     ListEditor(root, main_window)
 
 

@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from time import sleep
 from tkinter import *
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, font
 from PIL import Image, ImageTk
 
 import tkinter as tk
@@ -19,6 +19,7 @@ from event.tree_manager import TreeManager
 from service.content_service import ContentService
 from ui.directory_tree import DirectoryTree
 from ui.editor_directory_tree import EditorDirectoryTree
+from ui.scrollable_frame import ScrollableFrame
 from ui.syle.tree_view_style_manager import TreeViewStyleManager
 from util import image_util
 from util.ImageViewer import ImageViewer
@@ -153,8 +154,8 @@ class ListEditor:
 
         self.submit_button.pack(side=tk.RIGHT, padx=5)  # 在确定按钮的左边
 
-
-        EditorTreeManager(self.parent, editor_directory_tree,  1, tree_id)
+        top_id = self.tree.get_children()
+        EditorTreeManager(self.parent, editor_directory_tree,  top_id, tree_id)
 
     def move_or_copy_selected(self, is_move, content_ids, tree_id):
         """处理移动选择的项目"""
@@ -206,7 +207,6 @@ class ListEditor:
         edit_window.title("编辑项")
         edit_window.geometry("600x500")  # 设置窗口大小
         self.edit_window = edit_window
-        self.edit_window.grab_set()
         # 将窗口定位到鼠标点击的位置
         self.center_window(edit_window, 600, 500)
 
@@ -267,10 +267,11 @@ class ListEditor:
 
 
         self.description_frame = Frame(edit_window)
-        self.description_frame.pack(side=TOP, anchor=E, padx=(10, 20), pady=10, fill=tk.X)
+        self.description_frame.pack(side=TOP, anchor=E, padx=(10, 10), pady=10, fill=tk.X)
 
         # 描述标签
-        description_label = Label(self.description_frame, text="描述:")
+        label_font = font.Font(family="Helvetica", size=10, weight="bold")
+        description_label = tk.Label(self.description_frame, text="描述:", font=label_font, fg="#333333")
         description_label.pack(side=TOP, anchor=W)
 
         # 单行文本输入框
@@ -301,16 +302,20 @@ class ListEditor:
         self.describe_input.insert("1.0", data.describe)
         self.item_data = data
 
-        # 内容标签
-        content_label = Label(edit_window, text="对话:")
-        content_label.pack(side=TOP, anchor=W, padx=10, pady=5)
+        if data and len(data.dialogues) > 0:
+            # 内容标签
+            label_font = font.Font(family="Helvetica", size=10, weight="bold")
+            content_label = tk.Label(edit_window, text="对话:", font=label_font, fg="#333333")
 
-        self.set_dialogue_list(data.dialogues, edit_window)
+            content_label.pack(side=TOP, anchor=W, padx=10, pady=0)
+            frame = ScrollableFrame(edit_window)
+            self.set_dialogue_list(data.dialogues, frame.scrollable_frame)
+            frame.pack(fill=tk.BOTH, expand=True)  # 确保框架随窗口大小变化
 
-    def set_dialogue_list(self, data, edit_window):
+    def set_dialogue_list(self, data, scrollable_frame):
         for index in range(0, len(data), 2):
             # Create content_frame for each dialogue
-            content_frame = Frame(edit_window)
+            content_frame = Frame(scrollable_frame)
             content_frame.pack(side=TOP, anchor=W, fill=tk.X, padx=10, pady=(10, 30))
             self.dialogue_frames.append(content_frame)  # Store the frame for later
 
@@ -329,10 +334,10 @@ class ListEditor:
             content_left_frame.pack(side=LEFT, anchor=W, fill=tk.X, expand=True)
 
             # Hidden label to store data[index].id
-            hidden_user_id_label = Label(content_frame, text=data[index].id, fg=content_frame.cget('bg'))  # Same color as background
+            hidden_user_id_label = Label(content_frame, text=data[index].id)  # Same color as background
             hidden_user_id_label.pack_forget()  # Hide the label, but it's still part of the frame
 
-            hidden_assistant_id_label = Label(content_frame, text=data[index + 1].id, fg=content_frame.cget('bg'))  # Same color as background
+            hidden_assistant_id_label = Label(content_frame, text=data[index + 1].id)  # Same color as background
             hidden_assistant_id_label.pack_forget()  # Hide the label, but it's still part of the frame
 
             # User input text box
@@ -350,7 +355,7 @@ class ListEditor:
                 dialogue_assistant_input.pack(side=TOP, fill=tk.X)
                 dialogue_assistant_input.insert("1.0", data[index + 1].message)
 
-            hidden_assistant_img_path_label = Label(content_frame, text=data[index + 1].img_path, fg=content_frame.cget('bg'))
+            hidden_assistant_img_path_label = Label(content_frame, text=data[index + 1].img_path)
             hidden_assistant_img_path_label.pack_forget()
             if data[index + 1].img_path:
                 img_path = data[index + 1].img_path
@@ -374,6 +379,7 @@ class ListEditor:
                 'user_input': dialogue_user_input,
                 'assistant_input': dialogue_assistant_input
             }
+
 
     def get_valid_data_count(self):
         count = 0

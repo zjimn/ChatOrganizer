@@ -52,26 +52,11 @@ class MainManager:
         self.txt_generator = OpenaiTextApi()
         self.bind_events()
         root.update_idletasks()
-        self.center_window()
+
         root.update_idletasks()
         self.text_inserter = TextInserter(self.root, self.main_window.output_window.output_text)
 
         self.bind_events()
-
-
-    def center_window(self):
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        # 获取屏幕的宽度和高度
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-
-        # 计算窗口的 x 和 y 坐标，使其在屏幕中心
-        x = (screen_width - width) // 2
-        y = (screen_height - height) // 2
-
-        # 设置窗口的大小和位置
-        self.root.geometry(f"{width}x{height}+{x}+{y}")
 
 
     def update_column_widths(self, tree):

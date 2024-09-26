@@ -13,5 +13,5 @@ ASSISTANT_NAME = "assistant"
 DISPLAY_USER_NAME = "user"
 DISPLAY_ASSISTANT_NAME = "assistant"
 BROKEN_IMAGE = "res/icons/broken_img.png"   # Path to open folder icon
-OPEN_FOLDER_IMAGE = "res/icons/folder.png"   # Path to open folder icon
-CLOSED_FOLDER_IMAGE = "res/icons/folder.png" # Path to closed folder icon
+OPEN_FOLDER_IMAGE = "res/icons/folder_open.png"   # Path to open folder icon
+CLOSED_FOLDER_IMAGE = "res/icons/folder_close.png" # Path to closed folder icon

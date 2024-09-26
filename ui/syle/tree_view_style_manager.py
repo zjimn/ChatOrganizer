@@ -17,7 +17,7 @@ class TreeViewStyleManager:
     def configure_image_style(self):
         self.configure_styles()
         self.style.configure('Img.List.Treeview',
-                             rowheight=100, font=("微软雅黑", 12),
+                             rowheight=95, font=("微软雅黑", 12),
                              padding=(5, 10, 5, 10),
                              fieldbackground='white',
                              bordercolor='#cccccc',  # Column border color
@@ -102,7 +102,7 @@ class TreeViewStyleManager:
     def set_list_editor_tree_style(self):
         self.style.map('Editor.Tree.Treeview', background=[('selected', '#add8e6')])
         self.style.map('Editor.Tree.Treeview', foreground=[('selected', 'white')])
-        self.style.configure('Tree.Treeview',
+        self.style.configure('Editor.Tree.Treeview',
                         rowheight=25, font=("微软雅黑", 10),
                         padding=(5, 10, 5, 10),
                         fieldbackground = 'white',

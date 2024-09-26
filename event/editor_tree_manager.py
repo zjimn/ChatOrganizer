@@ -108,9 +108,9 @@ class EditorTreeManager:
         # Get the currently focused item
         item_id = self.tree_view.focus()
         # Check if the item is open or closed
-        if self.tree_view.item(item_id, 'open'):
+        if not self.tree_view.item(item_id, 'open'):
             # Set open folder icon
-            self.tree_view.item(item_id, image=self.edit_tree.closed_folder_resized_icon)
+            self.tree_view.item(item_id, image=self.edit_tree.open_folder_resized_icon)
         else:
             # Set closed folder icon
             self.tree_view.item(item_id, image=self.edit_tree.closed_folder_resized_icon)

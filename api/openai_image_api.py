@@ -12,7 +12,7 @@ class OpenaiImageApi:
         load_dotenv()
         self.token_manager = TokenManager(TOKEN_LIMIT)
         self.deployment_name = os.getenv("DALLE_DEPLOYMENT_NAME")
-        self.api_version = "2024-02-01"
+        self.api_version = os.getenv("API_VERSION")
         self.azure_endpoint = os.getenv("AZURE_ENDPOINT")
         self.api_key = os.getenv("API_KEY")
         self.cancel = False

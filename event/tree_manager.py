@@ -13,14 +13,13 @@ from ui.syle.tree_view_style_manager import TreeViewStyleManager
 
 
 class TreeManager:
-    def __init__(self, root, tree, main_window, bind_event = True, default_selected_item = None, expand_item = None):
+    def __init__(self, root, main_window):
         self.root = root
         self.current_item = None
         self.pre_selected_item = None
         self.main_window = main_window
-        self.tree_view = tree
+        self.tree_view = main_window.directory_tree.tree
         self.app_config = AppConfig()
-        self.bind_event = bind_event
         self._setup_context_menu()
         self.style = ttk.Style()
         self.style_manager = TreeViewStyleManager(self.tree_view)
@@ -30,7 +29,6 @@ class TreeManager:
         self.dragged_item = None
         self.floating_label = None
         self.start_drag = False  # 标记是否开始拖动
-        self.set_default_selected(default_selected_item, expand_item)
         self.bind_events()
 
     def _setup_context_menu(self):
@@ -78,14 +76,6 @@ class TreeManager:
                     self.tree_view.selection_set(previous_item_id)
                     self.tree_view.focus(previous_item_id)
                     self.current_item = previous_item_id
-
-    def set_default_selected(self, item, expand_item):
-        if item and self.tree_view.exists(item):
-            if expand_item:
-                self.expand_ancestors(expand_item)
-                self.tree_view.selection_set(item)
-                self.tree_view.focus(item)
-                self.tree_view.see(item)
 
 
 
@@ -202,10 +192,13 @@ class TreeManager:
         self.expand_ancestors(item_id)
 
         # Automatically select and focus the newly added item
-
+        self.publish_press_event(item_id)
         self.tree_view.selection_set(item_id)
         self.tree_view.focus(item_id)
         self.tree_view.see(item_id)
+
+
+
 
     def expand_ancestors(self, item_id: int):
         """Expand all ancestor nodes of the given item."""
@@ -317,7 +310,6 @@ class TreeManager:
 
 
     def publish_press_event(self, item):
-        if self.bind_event:
             self.app_config.set(LAST_SELECTED_TREE_ID_NAME, item)
             event_bus.publish("TreeItemPress", tree_id = item)
 
@@ -339,8 +331,8 @@ class TreeManager:
     def on_drop(self, event):
         # 获取目标位置
         target_item = self.tree_view.identify_row(event.y)
-
-        if self.dragged_item and target_item:
+        top_ids = self.tree_view.get_children()
+        if self.dragged_item and target_item and top_ids and len(top_ids) > 0 and self.dragged_item != top_ids[0]:
             # 如果目标不是自己，也不是自己的子项
             if target_item != self.dragged_item and not self.is_direct_child(self.dragged_item, target_item):
                 # Move the dragged item to the new position in the Treeview
@@ -397,9 +389,9 @@ class TreeManager:
         # Get the currently focused item
         item_id = self.tree_view.focus()
         # Check if the item is open or closed
-        if self.tree_view.item(item_id, 'open'):
+        if not self.tree_view.item(item_id, 'open'):
             # Set open folder icon
-            self.tree_view.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
+            self.tree_view.item(item_id, image=self.main_window.directory_tree.open_folder_resized_icon)
         else:
             # Set closed folder icon
             self.tree_view.item(item_id, image=self.main_window.directory_tree.closed_folder_resized_icon)
@@ -414,11 +406,10 @@ class TreeManager:
         self.tree_view.bind('<<TreeviewOpen>>', self.toggle_folder_icon)
         self.tree_view.bind('<<TreeviewClose>>', self.toggle_folder_icon)
 
-        if self.bind_event:
-            event_bus.subscribe('MoveToTargetTree', self.on_move_to_target_tree)
-            self.tree_view.bind('<ButtonPress-1>', self.on_item_press)
-            self.tree_view.bind('<B1-Motion>', self.on_drag)
-            self.tree_view.bind('<ButtonRelease-1>', self.on_drop)
+        event_bus.subscribe('MoveToTargetTree', self.on_move_to_target_tree)
+        self.tree_view.bind('<ButtonPress-1>', self.on_item_press)
+        self.tree_view.bind('<B1-Motion>', self.on_drag)
+        self.tree_view.bind('<ButtonRelease-1>', self.on_drop)
 
         self.tree_view.bind("<Motion>", self.on_mouse_move)
         self.tree_view.bind("<Leave>", self.on_mouse_leave)

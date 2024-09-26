@@ -79,8 +79,7 @@ class OutputManager:
                     user_content = f"\n{message}\n\n"
                 font = ("微软雅黑", 15, "bold")
                 self.text_inserter.insert_normal(user_content, font)
-            main_window.output_window.output_text.config(state=tk.NORMAL)
-            #self.main_window.output_window.output_text.insert(tk.END, message)
+        main_window.output_window.output_text.config(state=tk.DISABLED)
 
     def show_text_append(self, main_window, user_message, response_message, append = False):
         """显示生成的文本内容。"""

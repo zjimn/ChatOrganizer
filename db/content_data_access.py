@@ -147,7 +147,10 @@ class ContentDataAccess:
                 self.session.query(ContentData)
                 .filter(
                     ContentData.type == content_type,
-                    ContentData.id.in_(dialogue_content_ids),
+                    or_(
+                        ContentData.describe.like(f"%{search}%"),
+                        ContentData.id.in_(dialogue_content_ids),
+                    ),
                     ContentData.delete_time.is_(None),
                     or_(
                         ContentData.content_hierarchy_child_id.in_(child_ids),

@@ -1,6 +1,8 @@
 import threading
 import tkinter as tk
 from tkinter import DISABLED, NORMAL, ttk
+
+import _tkinter
 from PIL import Image, ImageTk
 from config.constant import TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, LAST_LIST_ORDER_BY_COLUMN, \
     LAST_LIST_SORT_ORDER_BY, PER_PAGE_COUNT_TXT, PER_PAGE_COUNT_IMG
@@ -17,6 +19,7 @@ from util.str_util import get_chars_by_count
 class ListManager:
     def __init__(self, root, main_window):
         # Create Treeview
+        self.delay_id = None
         self.total = None
         self.data = None
         self.current_page = 1
@@ -264,6 +267,12 @@ class ListManager:
         self.current_page = 1
         self.thread_update_list()
 
+    def on_change_search_text(self, *args):
+        if self.delay_id:
+            self.main_window.display_frame.search_input_text.after_cancel(self.delay_id)  # Cancel previous task
+        self.delay_id = self.main_window.display_frame.search_input_text.after(300, self.on_update_list)  # Debounce for 300ms
+
+
     def thread_update_list(self, sort_by = None, sort_order="asc"):
         threading.Thread(target=lambda: self.update_treeview(sort_by, sort_order)).start()
 
@@ -295,6 +304,8 @@ class ListManager:
                 self.insert_txt_data_item(content_id)
             else:
                 self.insert_img_data_item(content_id)
+            self.total += 1
+            self.update_pagination_view()
 
 
 
@@ -306,8 +317,13 @@ class ListManager:
         self.update_data_items(content_id, item_id)
 
     def clear_treeview(self):
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        # Get all children items in reverse order
+        for item in reversed(self.tree.get_children()):
+            if self.tree.exists(item):
+                try:
+                    self.tree.delete(item)
+                except _tkinter.TclError as e:
+                    print(f"Error deleting item {item}: {e}")
 
     def sort_column(self, col):
 
@@ -380,6 +396,22 @@ class ListManager:
 
         self.update_scrollbar_visibility()
 
+    def update_pagination_view(self):
+        if self.total <= self.per_page_count:
+
+            self.pagination_frame.pack_forget()  # 隐藏分页控件
+        else:
+            # 分页显示数据
+            self.pagination_frame.pack(side=tk.BOTTOM, fill=tk.X)
+            # 显示分页控件
+            self.main_window.display_frame.page_label.config(text=f" {self.current_page} / {self.total_pages()} ")
+            # 启用或禁用按钮
+            self.main_window.display_frame.prev_button.config(state=tk.NORMAL if self.current_page > 1 else tk.DISABLED)
+            self.main_window.display_frame.next_button.config(state=tk.NORMAL if self.current_page < self.total_pages() else tk.DISABLED)
+            self.main_window.display_frame.total_label.config(text=f" 共 {self.total} 条")
+
+        self.update_scrollbar_visibility()
+
     def total_pages(self):
         return (self.total + self.per_page_count - 1) // self.per_page_count
 
@@ -403,7 +435,8 @@ class ListManager:
     def bind_events(self):
         self.bind_tree_events()
         event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
-        self.search_input_entry_text.trace('w', self.on_update_list)
+        self.search_input_entry_text.trace_add('write', self.on_change_search_text)
+
         self.main_window.directory_tree.tree.bind('<<TreeviewSelect>>', self.on_update_list)
         event_bus.subscribe('InsertListItems', self.on_insert_items)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
