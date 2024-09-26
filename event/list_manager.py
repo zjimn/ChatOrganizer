@@ -6,6 +6,7 @@ from config.app_config import AppConfig
 from config.constant import TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, LAST_LIST_ORDER_BY_COLUMN, \
     LAST_LIST_SORT_ORDER_BY, PER_PAGE_COUNT_TXT, PER_PAGE_COUNT_IMG
 from event.event_bus import event_bus
+from event.list_editor import ListEditor
 from service.content_service import ContentService
 from util.image_util import open_img_replace_if_error
 from util.str_util import get_chars_by_count
@@ -31,6 +32,7 @@ class ListManager:
         self.context_menu = tk.Menu(self.tree, tearoff=0)
         self.content_service = ContentService()
         self.bind_events()
+        ListEditor(main_window)
         self.order_by_column = "id"
         self.sort_order_by = "asc"
         self.sort_reverse = {

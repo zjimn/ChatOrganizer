@@ -5,7 +5,6 @@ from config.app_config import AppConfig
 from config.constant import LAST_SELECTED_TREE_ID_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 from event.event_bus import event_bus
-from ui.syle.tree_view_style_manager import TreeViewStyleManager
 
 
 class TreeManager:
@@ -308,12 +307,3 @@ class TreeManager:
         self.tree_view.bind('<ButtonRelease-1>', self.on_drop)
         self.tree_view.bind("<Motion>", self.on_mouse_move)
         self.tree_view.bind("<Leave>", self.on_mouse_leave)
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    tree = ttk.Treeview(root, show='tree')
-    tree.pack(expand=True, fill='both')
-    manager = TreeManager()
-    manager.update_tree_from_db()
-    root.mainloop()

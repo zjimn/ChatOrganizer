@@ -1,6 +1,5 @@
 import tkinter as tk
 from config.enum import ViewType
-from db.config_data_access import ConfigDataAccess
 from ui.directory_tree import DirectoryTree
 from ui.display_frame import DisplayFrame
 from ui.input_frame import InputFrame
@@ -31,11 +30,3 @@ class MainWindow:
         self.paned_window.add(self.display_frame.right_frame, stretch="always")
         self.paned_window.update_idletasks()
         self.paned_window.sash_place(0, 150, 0)
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("GPT Completion Tool")
-    root.geometry("800x600")
-    config_data_access = ConfigDataAccess()
-    root.mainloop()
