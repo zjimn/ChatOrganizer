@@ -1,18 +1,11 @@
-# app_config.py
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from pathlib import Path
-
 from db.config_data_access import ConfigDataAccess
 
+
 class AppConfig:
-    """A class to manage system configuration variables stored in a database."""
-
     CONFIGS = {
-        'image_dir_path':  str(Path("../data") / "images")
+        'image_dir_path': str(Path("../data") / "images")
     }
-
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -28,14 +21,12 @@ class AppConfig:
         self.__initialized = True
 
     def initialize_default_configs(self):
-        """Initialize default configuration values if not already present."""
         with ConfigDataAccess() as cda:
             configs = cda.get_all_configs()
         existing_keys = {config.key for config in configs}
         for key, value in self.CONFIGS.items():
             if key not in existing_keys:
                 self.set(key, value, True)
-
         for item in configs:
             self.CONFIGS[item.key] = item.value
 

@@ -27,5 +27,4 @@ class EventBus:
                     callback()
 
 
-# Global instance of the event bus
 event_bus = EventBus()
