@@ -31,14 +31,14 @@ class OpenaiTextApi:
 
     def generate_gpt_completion(self, user_input, new=False):
         self.cancel = False
-        self.token_manager.add_txt_message(constant.DISPLAY_USER_NAME, user_input)
+        self.token_manager.add_txt_message(constant.USER_NAME, user_input)
         try:
             completion = self.client.chat.completions.create(
                 model=self.deployment_name,
                 messages=self.token_manager.conversation_txt_history
             )
             response_content = completion.choices[0].message.content
-            self.token_manager.add_txt_message(constant.DISPLAY_ASSISTANT_NAME, response_content)
+            self.token_manager.add_txt_message(constant.ASSISTANT_NAME, response_content)
             if self.cancel:
                 return None
             return response_content

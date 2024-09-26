@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import DISABLED, NORMAL
 import _tkinter
 from config.app_config import AppConfig
-from config.constant import TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, LAST_LIST_ORDER_BY_COLUMN, \
+from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, LAST_LIST_ORDER_BY_COLUMN, \
     LAST_LIST_SORT_ORDER_BY, PER_PAGE_COUNT_TXT, PER_PAGE_COUNT_IMG
 from event.event_bus import event_bus
 from event.list_editor import ListEditor
@@ -122,7 +122,7 @@ class ListManager:
         if not sort_order:
             sort_by = self.sort_order_by
         txt = self.search_input_entry_text.get()
-        if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             self.update_txt_data_items(txt, self.selected_tree_id, content_id=content_id, item_id=item_id,
                                        sort_by=sort_by, sort_order=sort_order)
         else:
@@ -245,7 +245,7 @@ class ListManager:
     def set_tree_by_type_option(self, type=None):
         self.main_window.display_frame.tree.pack_forget()
         if type is None:
-            type = self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+            type = self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
         if type == TYPE_OPTION_TXT_KEY:
             self.tree = self.main_window.display_frame.txt_tree
         else:
@@ -254,7 +254,7 @@ class ListManager:
         self.tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
     def on_insert_items(self, content_ids):
-        view_type = self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+        view_type = self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
         self.set_column_width(self.main_window.output_window.output_frame)
         for content_id in content_ids:
             if view_type == TYPE_OPTION_TXT_KEY:
@@ -289,7 +289,7 @@ class ListManager:
         region = self.tree.identify_region(event.x, event.y)
         if region == "heading":
             column = self.tree.identify_column(event.x)
-            if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
                 if column == "#1":
                     self.sort_column("describe")
                 elif column == "#2":
@@ -310,7 +310,7 @@ class ListManager:
         last_item = self.tree.get_children()[-1]
         bx = self.tree.bbox(last_item)
         if bx == '' or self.tree.winfo_height() < bx[3]:
-            if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
                 self.main_window.display_frame.tree_img_scrollbar.pack_forget()
                 self.main_window.display_frame.tree_txt_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
             else:

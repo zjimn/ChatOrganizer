@@ -4,7 +4,7 @@ from tkinter import *
 from tkinter import messagebox, ttk, font
 from PIL import ImageTk
 from config.app_config import AppConfig
-from config.constant import USER_NAME, ASSISTANT_NAME, TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, \
+from config.constant import USER_NAME, ASSISTANT_NAME, LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, \
     LAST_SELECTED_TREE_ID_NAME
 from db.content_data_access import ContentDataAccess
 from db.dialogue_data_access import DialogueDataAccess
@@ -147,7 +147,7 @@ class ListEditor:
         result = []
         for item in selected_items:
             list_item_values = self.list_tree.item(item, 'values')
-            if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
                 content_id = list_item_values[0]
             else:
                 content_id = list_item_values[1]
@@ -229,7 +229,7 @@ class ListEditor:
         description_label.pack(side=TOP, anchor=W)
         selected_item = self.list_tree.selection()[0]
         list_item_values = self.list_tree.item(selected_item, 'values')
-        if self.app_config.get(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             content_id = list_item_values[0]
         else:
             content_id = list_item_values[1]

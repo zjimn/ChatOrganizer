@@ -12,8 +12,6 @@ class DisplayFrame:
         self.right_frame = tk.Frame(parent)
         closed_folder_resized = image_util.resize_image_by_path(constant.CLOSED_FOLDER_IMAGE, (20, 20))
         self.closed_folder_resized_icon = ImageTk.PhotoImage(closed_folder_resized)
-        broken_img = image_util.resize_image_by_path(constant.BROKEN_IMAGE, (80, 80))
-        self.broken_img_icon = ImageTk.PhotoImage(broken_img)
         self.style = ttk.Style()
         self.style.theme_use('clam')
         self.search_input_entry_text = tk.StringVar()

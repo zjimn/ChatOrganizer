@@ -1,6 +1,6 @@
 import tkinter as tk
 from config.app_config import AppConfig
-from config.constant import TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
+from config.constant import LAST_TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
 from config.enum import ViewType
 from event.event_bus import event_bus
 
@@ -17,15 +17,15 @@ class InputManager:
     def on_type_option_change(self):
         self.update_option()
         if self.input_frame.option_var.get() == self.main_window.input_frame.type_options[1]:
-            self.app_config.set(TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY)
+            self.app_config.set(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY)
             type = TYPE_OPTION_IMG_KEY
         else:
-            self.app_config.set(TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+            self.app_config.set(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
             type = TYPE_OPTION_TXT_KEY
         event_bus.publish('ChangeTypeUpdateList', type=type)
 
     def init_option(self):
-        option_index = self.app_config.get(TYPE_OPTION_KEY_NAME, "0")
+        option_index = self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, "0")
         size_option_index = self.app_config.get(IMG_SIZE_OPTION_KEY_NAME, "0")
         selected_type_option = self.input_frame.type_options[int(option_index)]
         selected_size_option = self.input_frame.size_options[int(size_option_index)]
@@ -35,10 +35,8 @@ class InputManager:
 
     def update_option(self):
         if self.input_frame.option_var.get() == self.main_window.input_frame.type_options[1]:
-            self.main_window.view_type = ViewType.IMG
             self.input_frame.size_menu.pack(side=tk.RIGHT, padx=5, pady=(0, 0), anchor=tk.S)
         else:
-            self.main_window.view_type = ViewType.TXT
             self.input_frame.size_menu.pack_forget()
 
     def on_size_option_change(self):

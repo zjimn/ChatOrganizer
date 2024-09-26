@@ -4,7 +4,6 @@ from tkinter import scrolledtext
 
 class OutputWindow:
     def __init__(self, parent):
-        self.parent = parent
         self.output_window = tk.Toplevel(parent)
         self.output_window.title("")
         self.output_window.wm_attributes("-topmost", 1)
