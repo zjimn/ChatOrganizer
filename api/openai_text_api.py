@@ -29,7 +29,7 @@ class OpenaiTextApi:
     def cancel_request(self):
         self.cancel = True
 
-    def generate_gpt_completion(self, user_input, new=False):
+    def generate_gpt_completion(self, user_input):
         self.cancel = False
         self.token_manager.add_txt_message(constant.USER_NAME, user_input)
         try:

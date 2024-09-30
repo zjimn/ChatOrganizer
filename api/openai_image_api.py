@@ -30,7 +30,7 @@ class OpenaiImageApi:
     def cancel_request(self):
         self.cancel = True
 
-    def create_image_from_text(self, text, size, n, new=False):
+    def create_image_from_text(self, text, size, n = 1):
         self.cancel = False
         self.token_manager.add_img_message("Prompt", text)
         response = self.client.images.generate(
@@ -55,5 +55,4 @@ class OpenaiImageApi:
 
 if __name__ == "__main__":
     img_generator = OpenaiImageApi()
-    img_generator.create_image_from_text("A scenic ui of mountains", "1024x1024", 1)
-    img_generator.create_image_from_text("Add a sunset to the scene", "1024x1024", 1)
+    img_generator.create_image_from_text("A scenic ui of mountains", "1024x1024")

@@ -221,10 +221,3 @@ class ContentDataAccess:
         except Exception as e:
             self.session.rollback()
             print(f"An error occurred: {e}")
-
-
-if __name__ == "__main__":
-    with ContentDataAccess() as cda:
-        cda.insert_data("txt", 1, "example_description", "example_content", "path/to/image.jpg")
-        all_data = cda.get_all_data()
-        print(all_data)

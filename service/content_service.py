@@ -124,11 +124,3 @@ class ContentService:
                     result.append(char)
                     char_count += 1
         return get_chars_by_count(''.join(result), max_chars)
-
-
-if __name__ == "__main__":
-    content_service = ContentService()
-    records = content_service.load_txt_records(txt="example")
-    content_id = content_service.save_txt_record(None, 1, "Example Prompt", "Example Content")
-    data = content_service.load_data(content_id)
-    print(records, content_id, data)

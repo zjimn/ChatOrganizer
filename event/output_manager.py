@@ -122,7 +122,7 @@ class OutputManager:
             self.main_window.output_window.output_text.yview(tk.END)
         self.main_window.input_frame.frame.event_generate('<<RequestOpenaiBegin>>')
         if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
-            image_data = self.img_generator.create_image_from_text(prompt, selected_size, 1, self.session_id is None)
+            image_data = self.img_generator.create_image_from_text(prompt, selected_size)
             if image_data is None:
                 return
             url = image_data[0]
@@ -139,7 +139,7 @@ class OutputManager:
                                                                    str(file_path))
         else:
             self.set_output_text_default_background()
-            answer = self.txt_generator.generate_gpt_completion(prompt, self.session_id is None)
+            answer = self.txt_generator.generate_gpt_completion(prompt)
             if answer is None:
                 return
             self.show_text_append(self.main_window, None, answer, True)

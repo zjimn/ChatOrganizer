@@ -67,8 +67,3 @@ class ConfigDataAccess:
         except Exception as e:
             self.session.rollback()
             print(f"An error occurred: {e}")
-
-
-if __name__ == "__main__":
-    with ConfigDataAccess() as cda:
-        cda.insert_config("example_key", "example_value")

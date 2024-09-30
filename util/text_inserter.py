@@ -126,21 +126,12 @@ class TextInserter:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    content = ("\nDanger Will ```dfdfdf```"
-               "Robinson!\n"
-               " You have to manage th\ne priority of tagsto get th\ne right effe\nddddddddddddddddddddddddddddddddddd\ndddddddddddddddddddddct.")
-    content = ('''```
-num1 = int(input("请输入第一个数："))
-num2 = int(input("请输入第二个数："))
-sum = num1 + num2
-print("两数之和为：", sum)
-```''')
+    content = ('''hello''')
     duration = 5000
     text = tk.Text(root, height=10, wrap="word")
     text.pack(fill="both", expand=True)
     text_inserter = TextInserter(root, text, content, duration)
     text_inserter.set_color("#ebebeb")
-    text_inserter.insert_text_batch("\n" + content, 0, False)
+    text_inserter.insert_text("\n" + content, 100, False)
     print(text_inserter.sections)
-    text_inserter.insert_text_batch(content, 0, False)
     root.mainloop()

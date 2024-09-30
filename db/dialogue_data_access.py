@@ -118,10 +118,3 @@ class DialogueDataAccess:
         except Exception as e:
             self.session.rollback()
             print(f"An error occurred: {e}")
-
-
-if __name__ == "__main__":
-    with DialogueDataAccess() as dda:
-        dda.insert_data(content_id=1, role="user", message="Hello, how are you?", img_path="path/to/image.jpg")
-        all_data = dda.get_all_data()
-        print(all_data)

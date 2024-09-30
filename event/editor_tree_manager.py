@@ -93,12 +93,3 @@ class EditorTreeManager:
         self.tree_view.bind('<<TreeviewClose>>', self.toggle_folder_icon)
         self.tree_view.bind("<Motion>", self.on_mouse_move)
         self.tree_view.bind("<Leave>", self.on_mouse_leave)
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    tree = ttk.Treeview(root, show='tree')
-    tree.pack(expand=True, fill='both')
-    manager = EditorTreeManager()
-    manager.update_tree_from_db()
-    root.mainloop()
