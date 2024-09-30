@@ -10,5 +10,5 @@ PER_PAGE_COUNT_TXT = 20
 PER_PAGE_COUNT_IMG = 10
 USER_NAME = "user"
 ASSISTANT_NAME = "assistant"
-OPEN_FOLDER_IMAGE = "res/icons/folder_open.png"
-CLOSED_FOLDER_IMAGE = "res/icons/folder_close.png"
+OPEN_FOLDER_IMAGE = "res/icon/folder_open.png"
+CLOSED_FOLDER_IMAGE = "res/icon/folder_close.png"
