@@ -21,7 +21,7 @@
 1. **克隆仓库**
    ```bash
    git clone https://github.com/zjimn/ChatOrganizer.git
-   cd OpenAiChat
+   cd ChatOrganizer
 2. **安装依赖**  
    pip install -r requirements.txt
 3. **配置微软云平台 OpenAI 接口**  
