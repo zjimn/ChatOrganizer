@@ -4,7 +4,7 @@ from db.config_data_access import ConfigDataAccess
 
 class AppConfig:
     CONFIGS = {
-        'image_dir_path': str(Path("../data") / "images")
+        'image_dir_path': str(Path("data") / "images")
     }
     _instance = None
 
