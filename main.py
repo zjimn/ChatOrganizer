@@ -1,5 +1,6 @@
 import tkinter as tk
 from db.database import init_db
+from db.init_data import insert_default_content_hierarchy
 from event.input_manager import InputManager
 from event.list_manager import ListManager
 from event.main_manager import MainManager
@@ -11,6 +12,7 @@ from util.window_util import center_window
 
 def main():
     init_db()
+    insert_default_content_hierarchy()
     root = tk.Tk()
     root.title("openai chat")
     root.geometry("800x620")

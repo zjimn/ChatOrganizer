@@ -119,7 +119,6 @@ class TreeManager:
         return level
 
     def set_focus_to_first_item(self):
-        selected_items = self.tree_view.selection()
         first_item = None
         last_selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
         if last_selected_tree_id is not None and self.tree_view.exists(last_selected_tree_id):

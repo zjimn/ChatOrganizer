@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional, List, Dict
 from sqlalchemy import asc
+from sqlalchemy.exc import SQLAlchemyError
+
 from db.database import Session
 from db.models import ContentHierarchy, ContentData, Dialogue
 
@@ -45,6 +47,16 @@ class ContentHierarchyDataAccess:
         except Exception as e:
             print(f"An error occurred: {e}")
             return []
+
+    def has_data(self) -> bool:
+        try:
+            exists = self.session.query(ContentHierarchy).filter(
+                ContentHierarchy.delete_time.is_(None)
+            ).first() is not None
+            return exists
+        except SQLAlchemyError as e:
+            print(f"检查数据存在性时发生错误: {e}")
+            return False
 
     def get_all_children_by_parent_id(self, parent_id: int = None) -> List[ContentHierarchy]:
         try:
