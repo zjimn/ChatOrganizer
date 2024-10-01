@@ -1,10 +1,12 @@
 from pathlib import Path
+
+from config.constant import IMAGE_DIR_PATH
 from db.config_data_access import ConfigDataAccess
 
 
 class AppConfig:
     CONFIGS = {
-        'image_dir_path': str(Path("data") / "image")
+        'image_dir_path': IMAGE_DIR_PATH
     }
     _instance = None
 
