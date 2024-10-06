@@ -54,20 +54,54 @@
    - 点击任意对话记录，可以查看详细内容或进行编辑。
 
 ## 项目结构
-
-    ChatOrganizer/
-    ├── api/
-    ├── config/
-    ├── db/
-    ├── event/
-    ├── res/
-    │   └── icon/
-    ├── service/
-    ├── ui/
-    ├── util/
-    └── main.py
-
-
-
-
-
+   
+   ChatGPT-对话管理器/  
+   ├── api  
+   │   ├── openai_image_api.py  
+   │   └── openai_text_api.py  
+   ├── config  
+   │   ├── app_config.py  
+   │   ├── constant.py  
+   │   └── enum.py  
+   ├── db  
+   │   ├── config.py  
+   │   ├── config_data_access.py  
+   │   ├── content_data_access.py  
+   │   ├── content_hierarchy_access.py  
+   │   ├── database.py  
+   │   ├── dialogue_data_access.py  
+   │   └── models.py  
+   ├── event  
+   │   ├── editor_tree_manager.py  
+   │   ├── event_bus.py  
+   │   ├── input_manager.py  
+   │   ├── list_editor.py  
+   │   ├── list_manager.py  
+   │   ├── main_manager.py  
+   │   ├── output_manager.py  
+   │   └── tree_manager.py  
+   ├── main.py  
+   ├── requirements.txt  
+   ├── res  
+   │   └── icon  
+   │       ├── folder_close.png  
+   │       └── folder_open.png  
+   ├── service  
+   │   └── content_service.py  
+   ├── ui  
+   │   ├── directory_tree.py  
+   │   ├── display_frame.py  
+   │   ├── editor_directory_tree.py  
+   │   ├── input_frame.py  
+   │   ├── main_window.py  
+   │   ├── output_window.py  
+   │   ├── scrollable_frame.py  
+   │   └── syle  
+   │       └── tree_view_style_manager.py  
+   └── util  
+       ├── ImageViewer.py  
+       ├── image_util.py  
+       ├── str_util.py  
+       ├── text_inserter.py  
+       ├── token_management.py  
+       └── window_util.py
