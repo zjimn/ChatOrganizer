@@ -15,7 +15,7 @@ from service.content_service import ContentService
 from ui.editor_directory_tree import EditorDirectoryTree
 from ui.scrollable_frame import ScrollableFrame
 from util import image_util
-from util.ImageViewer import ImageViewer
+from util.image_viewer import ImageViewer
 from util.window_util import center_window
 
 

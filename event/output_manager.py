@@ -17,7 +17,7 @@ from config.enum import ViewType
 from db.models import Dialogue
 from event.event_bus import event_bus
 from service.content_service import ContentService
-from util.ImageViewer import ImageViewer
+from util.image_viewer import ImageViewer
 from util.image_util import full_cover_resize
 from util.text_inserter import TextInserter
 
