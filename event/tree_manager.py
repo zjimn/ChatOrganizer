@@ -131,7 +131,7 @@ class TreeManager:
         self.publish_press_event(first_item)
 
     def _insert_tree_item(self, parent_id: Optional[int], item_id: int, text: str):
-        parent_item = parent_id if parent_id else ""
+        parent_item = parent_id if parent_id is not None else ''
         self.tree_view.insert(parent_item, 'end', iid=item_id, text="  " + text,
                               image=self.main_window.directory_tree.closed_folder_resized_icon)
 
