@@ -1,25 +1,19 @@
 import os
 from dotenv import load_dotenv
-from openai import AzureOpenAI
 
 from config.constant import TOKEN_LIMIT
 from util.token_management import TokenManager
-
+import requests
+import json
 
 class OpenaiImageApi:
     def __init__(self):
         load_dotenv()
         self.token_manager = TokenManager(TOKEN_LIMIT)
-        self.deployment_name = os.getenv("DALLE_DEPLOYMENT_NAME")
-        self.api_version = os.getenv("API_VERSION")
-        self.azure_endpoint = os.getenv("AZURE_ENDPOINT")
+        self.model_name = os.getenv("IMAGE_MODEL_NAME")
         self.api_key = os.getenv("API_KEY")
         self.cancel = False
-        self.client = AzureOpenAI(
-            api_version=self.api_version,
-            azure_endpoint=self.azure_endpoint,
-            api_key=self.api_key
-        )
+
 
     def clear_history(self):
         self.token_manager.clear_img_history()
@@ -30,27 +24,47 @@ class OpenaiImageApi:
     def cancel_request(self):
         self.cancel = True
 
-    def create_image_from_text(self, text, size, n = 1):
+    def create_image_from_text(self, prompt, size, n = 1):
         self.cancel = False
-        self.token_manager.add_img_message("Prompt", text)
-        response = self.client.images.generate(
-            model=self.deployment_name,
-            prompt=self.token_manager.get_manage_img_history(),
-            size=size,
-            quality="standard",
-            n=n,
-        )
-        response_data = response.data
-        image_urls = []
-        if isinstance(response_data, list):
-            for image in response_data:
-                image_url = image.url
-                image_urls.append(image_url)
-        image_urls_string = ', '.join(image_urls)
-        self.token_manager.add_img_message("Response", image_urls_string)
-        if self.cancel:
-            return None
-        return image_urls
+        self.token_manager.add_img_message("Prompt", prompt)
+        url = "https://api.deepbricks.ai/v1/images/generations"
+
+        if not self.api_key:
+            return
+        body = {
+            "model": self.model_name,
+            "prompt": prompt,
+            "size": size,
+            "quality": "hd"
+        }
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=body)
+            response.raise_for_status()  # 检查请求是否成功
+
+            # 解析 JSON 响应
+            data = response.json()
+
+            image_urls = []
+            if 'data' in data and len(data['data']) > 0:
+                for item in data['data']:
+                    image_url = item.get('url', '')
+                    image_urls.append(image_url)
+            image_urls_string = ', '.join(image_urls)
+            self.token_manager.add_img_message("Response", image_urls_string)
+            if self.cancel:
+                return None
+            return image_urls
+
+        except requests.exceptions.RequestException as e:
+            print(f"请求失败: {e}")
+        except json.JSONDecodeError:
+            print("响应内容不是有效的 JSON 格式。")
 
 
 if __name__ == "__main__":
