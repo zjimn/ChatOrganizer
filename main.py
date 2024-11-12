@@ -21,7 +21,7 @@ def main():
     root = tk.Tk()
     root.title("openai chat")
     root.geometry("800x620")
-    center_window(root, 800, 620)
+    center_window(root, 800, 630)
     main_window = MainWindow(root)
     MainManager(main_window)
     ListManager(main_window)
