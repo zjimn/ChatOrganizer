@@ -1,4 +1,7 @@
 import os
+from logging import exception
+from tkinter import messagebox
+
 from dotenv import load_dotenv
 
 from config.constant import TOKEN_LIMIT
@@ -60,11 +63,15 @@ class OpenaiImageApi:
             if self.cancel:
                 return None
             return image_urls
-
         except requests.exceptions.RequestException as e:
             print(f"请求失败: {e}")
-        except json.JSONDecodeError:
+            messagebox.showwarning("错误", str(e))
+        except json.JSONDecodeError as e:
             print("响应内容不是有效的 JSON 格式。")
+            messagebox.showwarning("错误", str(e))
+        except exception as e:
+            print(f"请求失败: {e}")
+            messagebox.showwarning("错误", str(e))
 
 
 if __name__ == "__main__":
