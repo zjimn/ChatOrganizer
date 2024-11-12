@@ -1,4 +1,6 @@
 import os
+from tkinter import messagebox
+
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 from config import constant
@@ -44,6 +46,7 @@ class OpenaiTextApi:
             return response_content
         except Exception as e:
             print(f"An error occurred: {e}")
+            messagebox.showwarning("错误", str(e))
             return None
 
 

@@ -1,4 +1,6 @@
 import os
+from tkinter import messagebox
+
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 
@@ -33,24 +35,29 @@ class OpenaiImageApi:
     def create_image_from_text(self, text, size, n = 1):
         self.cancel = False
         self.token_manager.add_img_message("Prompt", text)
-        response = self.client.images.generate(
-            model=self.deployment_name,
-            prompt=self.token_manager.get_manage_img_history(),
-            size=size,
-            quality="standard",
-            n=n,
-        )
-        response_data = response.data
-        image_urls = []
-        if isinstance(response_data, list):
-            for image in response_data:
-                image_url = image.url
-                image_urls.append(image_url)
-        image_urls_string = ', '.join(image_urls)
-        self.token_manager.add_img_message("Response", image_urls_string)
-        if self.cancel:
-            return None
-        return image_urls
+        try:
+            response = self.client.images.generate(
+                model=self.deployment_name,
+                prompt=self.token_manager.get_manage_img_history(),
+                size=size,
+                quality="standard",
+                n=n,
+            )
+            response_data = response.data
+            image_urls = []
+            if isinstance(response_data, list):
+                for image in response_data:
+                    image_url = image.url
+                    image_urls.append(image_url)
+            image_urls_string = ', '.join(image_urls)
+            self.token_manager.add_img_message("Response", image_urls_string)
+            if self.cancel:
+                return None
+            return image_urls
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            messagebox.showwarning("错误", str(e))
+        return None
 
 
 if __name__ == "__main__":
