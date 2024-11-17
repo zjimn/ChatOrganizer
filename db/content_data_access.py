@@ -146,7 +146,10 @@ class ContentDataAccess:
                         base_query = base_query.order_by(desc(sort_column))
                     else:
                         base_query = base_query.order_by(asc(sort_column))
-            return base_query.all()
+            data_list = base_query.all()
+            for item in data_list:
+                self.session.expunge(item)
+            return data_list
         except Exception as e:
             print(f"An error occurred: {e}")
             return []
@@ -170,6 +173,8 @@ class ContentDataAccess:
             total_count = self.session.execute(total_count_query).scalar()
             offset = (page_number - 1) * page_size
             data_list = base_query.offset(offset).limit(page_size).all()
+            for item in data_list:
+                self.session.expunge(item)
             return data_list, total_count
         except Exception as e:
             print(f"An error occurred: {e}")
