@@ -9,7 +9,7 @@ class UndoRedoText(tk.Text):
         self.history_index = 0
         self.bind("<Control-z>", self.safe_undo)  # Ctrl+Z 撤销
         self.bind("<Control-Shift-Z>", self.safe_redo)  # Ctrl+Shift+Z 重做
-        self.bind("<KeyRelease>", self.record_change)  # 记录每次输入
+        self.bind("<Key>", self.record_change)  # 记录每次输入
 
     def record_change(self, event=None):
         # 获取当前文本内容
