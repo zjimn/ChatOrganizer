@@ -136,11 +136,14 @@ class SearchableScrolledText(tk.Frame):
             self.search_text(query)
             total = len(self.search_results)
             self.set_count_label(self.current_index, total)
+            if total == 0:
+                self.clear_highlight()
         else:
             self.clear_highlight()
             self.search_results = []
             self.set_count_label(-1, 0)
             self.update_navigation_buttons(False)
+            self.clear_highlight()
 
     def previous_result(self):
         if self.search_results:
