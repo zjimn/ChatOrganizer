@@ -93,7 +93,7 @@ class OutputManager:
         if response_message is not None:
             reader = PreferenceReader(PREFERENCE_PROPERTIES_FILE)
             typewriter_effect = reader.get("TYPEWRITER_EFFECT", 0)
-            if str(typewriter_effect) == 1:
+            if typewriter_effect == 1:
                 self.text_inserter.set_color("#e6e6e6")
                 self.text_inserter.insert_text(response_content, 1000)
             else:
