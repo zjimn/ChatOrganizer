@@ -5,7 +5,7 @@ from event.event_bus import event_bus
 
 
 class SearchableScrolledText(tk.Frame):
-    def __init__(self, root, parent, **kwargs):
+    def __init__(self, parent, **kwargs):
         super().__init__(parent)
 
         # Create a ScrolledText widget
@@ -65,7 +65,7 @@ class SearchableScrolledText(tk.Frame):
         if self.search_results:
             self.current_index = 0
             self.jump_to_result(self.current_index)
-            self.update_navigation_buttons(True)  # Enable buttons if matches are found
+            self.update_navigation_buttons(len(self.search_results) > 1)  # Enable buttons if matches are found
         else:
             self.current_index = -1
             #messagebox.showinfo("Search", "No matches found.", parent=self)
@@ -109,10 +109,6 @@ class SearchableScrolledText(tk.Frame):
         self.prev_button.pack(side=tk.LEFT, padx=5)
         self.next_button = ttk.Button(search_window, text="下一条", command=lambda: self.next_result())
         self.next_button.pack(side=tk.LEFT, padx=5)
-        # Create Search button
-        search_button = ttk.Button(search_window, text="关闭", command=lambda: self.close_window())
-        search_button.pack(side=tk.LEFT, padx=5)
-
         # Bind KeyRelease to trigger search on text input
         self.entry.bind("<KeyRelease>", lambda event: self.start_search(self.entry.get()))
         event_bus.subscribe("CloseOutputWindow",self.close_window)
@@ -176,7 +172,7 @@ class SearchableScrolledText(tk.Frame):
             parent_width = parent.winfo_width()
 
             # Set the position of the search window (relative to parent window)
-            self.search_window.geometry(f"500x50+{parent_x + parent_width - 500}+{parent_y + 0}")
+            self.search_window.geometry(f"400x50+{parent_x + parent_width - 420}+{parent_y + 0}")
             self.search_window.overrideredirect(True)
 
 
