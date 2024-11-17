@@ -49,8 +49,8 @@ class OutputManager:
         self.main_window.output_window.output_window_scrollbar.pack_forget()
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.clear_output_window_canvas_data()
-        main_window.output_window.output_text.pack(fill=tk.BOTH, expand=True)
-        main_window.output_window.output_text.config(state=tk.NORMAL)
+        main_window.output_window.text_component.pack(fill=tk.BOTH, expand=True)
+        main_window.output_window.text_component.output_text.config(state=tk.NORMAL)
         if not append:
             main_window.output_window.output_text.delete(1.0, tk.END)
         else:
@@ -76,8 +76,8 @@ class OutputManager:
         self.main_window.output_window.output_window_scrollbar.pack_forget()
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.clear_output_window_canvas_data()
-        main_window.output_window.output_text.pack(fill=tk.BOTH, expand=True)
-        main_window.output_window.output_text.config(state=tk.NORMAL)
+        main_window.output_window.text_component.pack(fill=tk.BOTH, expand=True)
+        main_window.output_window.text_component.output_text.config(state=tk.NORMAL)
         if not append:
             main_window.output_window.output_text.delete(1.0, tk.END)
         else:
@@ -160,7 +160,7 @@ class OutputManager:
 
     def set_dialog_images(self, data, append=False, only_img=False, first=False):
         self.main_window.output_window.output_window_canvas.yview_moveto(0)
-        self.main_window.output_window.output_text.pack_forget()
+        self.main_window.output_window.text_component.pack_forget()
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.Y, expand=True)
         self.main_window.output_window.output_window.deiconify()
         self.main_window.output_window.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)

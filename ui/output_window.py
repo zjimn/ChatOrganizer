@@ -31,4 +31,4 @@ class OutputWindow:
         self.text_component.pack(fill=tk.BOTH, expand=True)
         self.output_text = self.text_component.output_text
         self.output_text.config(font=("Microsoft YaHei", 12), padx=10, pady=10)
-        self.output_text.pack_forget()
+        self.text_component.pack_forget()
