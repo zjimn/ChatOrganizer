@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext, simpledialog, messagebox, ttk
 
 from event.event_bus import event_bus
+from util.undo_redo_entry import UndoRedoEntry
 
 
 class SearchableScrolledText(tk.Frame):
@@ -9,6 +10,7 @@ class SearchableScrolledText(tk.Frame):
         super().__init__(parent)
 
         # Create a ScrolledText widget
+        self.style = None
         self.count_label = None
         self.count_text = None
         self.entry = None
@@ -99,7 +101,7 @@ class SearchableScrolledText(tk.Frame):
         self.style.theme_use('clam')
         # Create input field
         self.style.configure("Custom.TEntry", padding=(5, 5))
-        self.entry = ttk.Entry(search_window, width=20, style="Custom.TEntry")
+        self.entry = UndoRedoEntry(search_window, width=20, style="Custom.TEntry")
         #self.entry = tk.Entry(search_window, width=20, padding=(3, 5))
         self.entry.pack(side=tk.LEFT, padx=5, pady=5)
 
