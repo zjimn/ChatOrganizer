@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import ImageTk
 from config import constant
+from util.undo_redo_entry import UndoRedoEntry
 from ui.syle.tree_view_style_manager import TreeViewStyleManager
 from util import image_util
 
@@ -16,7 +17,7 @@ class DisplayFrame:
         self.style.theme_use('clam')
         self.search_input_entry_text = tk.StringVar()
         self.style.configure("Custom.TEntry", padding=(3, 5))
-        self.search_input_text = ttk.Entry(self.right_frame, width=50, style="Custom.TEntry",
+        self.search_input_text = UndoRedoEntry(self.right_frame, width=50, style="Custom.TEntry",
                                            textvariable=self.search_input_entry_text)
         self.search_input_text.pack(side=tk.TOP, fill=tk.X, padx=0, pady=(0, 10), anchor=tk.S)
         self.search_input_text.config(font=("Microsoft YaHei", 10))

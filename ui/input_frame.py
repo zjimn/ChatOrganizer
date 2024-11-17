@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 
+from util.undo_redo_text import UndoRedoText
+
 
 class InputFrame:
     def __init__(self, parent):
@@ -14,7 +16,7 @@ class InputFrame:
         self.submit_button_is_changed = False
         self.frame = tk.Frame(self.parent)
         self.frame.pack(side=tk.BOTTOM, fill=tk.X, padx=20, pady=(5, 20))
-        self.input_text = tk.Text(self.frame, width=10, height=1, padx=5, pady=5)
+        self.input_text = UndoRedoText(self.frame, width=10, height=1, padx=5, pady=5)
         self.input_text.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         self.input_text.config(font=("Microsoft YaHei", 10))
         self.submit_button = ttk.Button(self.frame, text="获取回答", state=tk.DISABLED)
