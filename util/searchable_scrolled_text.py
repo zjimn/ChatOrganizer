@@ -42,6 +42,7 @@ class SearchableScrolledText(tk.Frame):
         self.display_window()
 
     def search_text(self, query):
+        query = query.lower()
         self.output_text.tag_remove("highlight", "1.0", tk.END)  # Clear previous highlights
         self.search_results = []
         self.current_index = -1
@@ -51,7 +52,7 @@ class SearchableScrolledText(tk.Frame):
         # Find matches and highlight them
         start = "1.0"
         while True:
-            start = self.output_text.search(query, start, stopindex=tk.END)
+            start = self.output_text.search(query, start, stopindex=tk.END, nocase=True)
             if not start:
                 break
             end = f"{start}+{len(query)}c"
