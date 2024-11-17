@@ -95,9 +95,12 @@ class SearchableScrolledText(tk.Frame):
 
         # Set initial position
         self.update_search_window_position(parent)
-
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
         # Create input field
-        self.entry = tk.Entry(search_window, width=20)
+        self.style.configure("Custom.TEntry", padding=(5, 5))
+        self.entry = ttk.Entry(search_window, width=20, style="Custom.TEntry")
+        #self.entry = tk.Entry(search_window, width=20, padding=(3, 5))
         self.entry.pack(side=tk.LEFT, padx=5, pady=5)
 
 
