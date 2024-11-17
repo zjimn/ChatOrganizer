@@ -4,7 +4,6 @@ from tkinter import messagebox
 
 from dotenv import load_dotenv
 
-from config.constant import TOKEN_LIMIT
 from util.token_management import TokenManager
 import requests
 import json
@@ -12,7 +11,7 @@ import json
 class OpenaiImageApi:
     def __init__(self):
         load_dotenv()
-        self.token_manager = TokenManager(TOKEN_LIMIT)
+        self.token_manager = TokenManager()
         self.model_name = os.getenv("IMAGE_MODEL_NAME")
         self.api_key = os.getenv("API_KEY")
         self.cancel = False

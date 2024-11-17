@@ -1,8 +1,11 @@
-from config.constant import TOKEN_LIMIT
+from config.constant import PREFERENCE_PROPERTIES_FILE
+from util.preference_reader import PreferenceReader
 
 
 class TokenManager:
-    def __init__(self, token_limit=TOKEN_LIMIT):
+    def __init__(self):
+        reader = PreferenceReader(PREFERENCE_PROPERTIES_FILE)
+        token_limit = reader.get("TOKEN_LIMIT", 0)
         self.token_limit = token_limit
         self.conversation_txt_history = []
         self.conversation_img_history = []
@@ -12,7 +15,7 @@ class TokenManager:
 
     def manage_txt_history(self):
         total_tokens = sum(self.estimate_token_count(message['content']) for message in self.conversation_txt_history)
-        while total_tokens > self.token_limit:
+        while total_tokens > self.token_limit != 0:
             if self.conversation_txt_history:
                 removed_message = self.conversation_txt_history.pop(0)
                 total_tokens -= self.estimate_token_count(removed_message['content'])

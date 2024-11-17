@@ -12,7 +12,7 @@ import json
 class OpenaiTextApi:
     def __init__(self):
         self.cancel = None
-        self.token_manager = TokenManager(constant.TOKEN_LIMIT)
+        self.token_manager = TokenManager()
         dotenv_path = resource_path('.env')
         load_dotenv(dotenv_path)
         self.model_name = os.getenv("MODEL_NAME")
@@ -67,12 +67,15 @@ class OpenaiTextApi:
         except requests.exceptions.RequestException as e:
             print(f"请求失败: {e}")
             messagebox.showwarning("错误", str(e))
+            return None
         except json.JSONDecodeError as e:
             print("响应内容不是有效的 JSON 格式。")
             messagebox.showwarning("错误", str(e))
+            return None
         except exception as e:
             print("响应内容不是有效的 JSON 格式。")
             messagebox.showwarning("错误", str(e))
+            return None
 
 
 if __name__ == "__main__":
