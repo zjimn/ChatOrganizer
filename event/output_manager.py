@@ -319,6 +319,7 @@ class OutputManager:
         self.img_generator.clear_history()
         self.txt_generator.clear_history()
         event_bus.publish('CloseOutputWindow')
+        self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
 
     def on_change_type_update_list(self, **args):
         self.close_output_window()
