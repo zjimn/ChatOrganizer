@@ -36,6 +36,7 @@ class SearchableScrolledText(tk.Frame):
         # Bind the parent window's configure event to update the search window's position
         parent.bind_all("<Configure>", lambda event: self.update_search_window_position(parent))
         self.create_search_window(parent)
+        self.update_navigation_buttons(False)
         self.close_window()
 
     def trigger_search_dialog(self, event=None):
@@ -117,6 +118,7 @@ class SearchableScrolledText(tk.Frame):
     def close_window(self):
         self.search_window.withdraw()
         self.clear_highlight()
+        self.update_navigation_buttons(False)
 
     def display_window(self):
         self.search_window.deiconify()
