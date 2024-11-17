@@ -12,10 +12,10 @@ from api.openai_text_api import OpenaiTextApi
 from config import constant
 from config.app_config import AppConfig
 from config.constant import LAST_TYPE_OPTION_KEY_NAME, ASSISTANT_NAME, TYPE_OPTION_TXT_KEY, \
-    TYPE_OPTION_IMG_KEY
-from config.enum import ViewType
+    TYPE_OPTION_IMG_KEY, PREFERENCE_PROPERTIES_FILE
 from db.models import Dialogue
 from event.event_bus import event_bus
+from util.preference_reader import PreferenceReader
 from service.content_service import ContentService
 from util.image_viewer import ImageViewer
 from util.image_util import full_cover_resize
@@ -91,8 +91,14 @@ class OutputManager:
         if user_message is not None:
             self.text_inserter.insert_normal(user_content, font)
         if response_message is not None:
-            self.text_inserter.set_color("#e6e6e6")
-            self.text_inserter.insert_text(response_content, 1000)
+            reader = PreferenceReader(PREFERENCE_PROPERTIES_FILE)
+            typewriter_effect = reader.get("TYPEWRITER_EFFECT", 0)
+            if str(typewriter_effect) == 1:
+                self.text_inserter.set_color("#e6e6e6")
+                self.text_inserter.insert_text(response_content, 1000)
+            else:
+                self.text_inserter.set_color("#e6e6e6")
+                self.text_inserter.insert_text_batch(f"{response_content}\n", 0, False)
 
     def download_img(self, url):
         response = requests.get(url)
@@ -106,6 +112,7 @@ class OutputManager:
         self.main_window.output_window.output_window.deiconify()
         show_tree = self.session_id is None
         if not prompt:
+            self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
             return
         prompt = self.main_window.input_frame.input_text.get('1.0', 'end-1c')
         if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
@@ -124,6 +131,7 @@ class OutputManager:
         if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
             image_data = self.img_generator.create_image_from_text(prompt, selected_size)
             if image_data is None:
+                self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
                 return
             url = image_data[0]
             filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png")
@@ -141,6 +149,7 @@ class OutputManager:
             self.set_output_text_default_background()
             answer = self.txt_generator.generate_gpt_completion(prompt)
             if answer is None:
+                self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
                 return
             self.show_text_append(self.main_window, None, answer, True)
             self.session_id = self.content_service.save_txt_record(self.session_id, self.selected_tree_id, prompt,
@@ -309,6 +318,7 @@ class OutputManager:
         self.img_generator.cancel_request()
         self.img_generator.clear_history()
         self.txt_generator.clear_history()
+        event_bus.publish('CloseOutputWindow')
 
     def on_change_type_update_list(self, **args):
         self.close_output_window()
