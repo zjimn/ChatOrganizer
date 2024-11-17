@@ -70,25 +70,28 @@ class ListManager:
             records, count = self.content_service.load_txt_records_by_page(txt, selected_content_hierarchy_child_id,
                                                                            page_number, page_size, content_id, sort_by,
                                                                            sort_order)
-            self.data = records
             self.total = count
             self.clear_treeview()
             for index, record in enumerate(records):
                 tag = self.get_tag(index)
+                content = get_chars_by_count(record.content, 30)
+                describe = get_chars_by_count(record.describe, 30)
                 self.tree.insert("", tk.END, iid=record.id, values=(
                     record.id,
-                    record.describe,
-                    get_chars_by_count(record.content),
+                    describe,
+                    content,
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 ), tags=(tag,))
         if content_id:
             records = self.content_service.load_txt_records(txt, selected_content_hierarchy_child_id, content_id)
             if len(records) > 0:
                 record = records[0]
+                content = get_chars_by_count(record.content, 30)
+                describe = get_chars_by_count(record.describe, 30)
                 new_values = (
                     record.id,
-                    record.describe,
-                    get_chars_by_count(record.content),
+                    describe,
+                    content,
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 )
                 self.update_single_item(item_id, new_values)
@@ -171,7 +174,6 @@ class ListManager:
             records, count = self.content_service.load_img_records_by_page(txt, selected_content_hierarchy_child_id,
                                                                            page_number, page_size, content_id, sort_by,
                                                                            sort_order)
-            self.data = records
             self.total = count
             index = 0
             for record in records:
