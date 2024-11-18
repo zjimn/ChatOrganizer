@@ -73,7 +73,7 @@ class OpenaiTextApi:
             messagebox.showwarning("错误", str(e))
             return None
         except exception as e:
-            print("响应内容不是有效的 JSON 格式。")
+            print("请求异常")
             messagebox.showwarning("错误", str(e))
             return None
 
