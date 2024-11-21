@@ -329,7 +329,6 @@ class ListEditor:
             select_item_button.config(state=tk.DISABLED)
 
     def keep_only(self, frame_to_keep, select_item_button):
-        select_item_button.config(state=tk.DISABLED)
         response = messagebox.askyesno(
             "Confirm",
             "确定需要保留该项删除其他项?",
