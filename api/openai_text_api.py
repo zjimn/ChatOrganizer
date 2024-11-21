@@ -29,9 +29,13 @@ class OpenaiTextApi:
         self.cancel = True
 
 
-    def generate_gpt_completion(self, user_input):
+    def generate_gpt_completion(self, user_input, sys_messages = None, error_win = True):
         self.cancel = False
-        self.token_manager.add_txt_message(constant.USER_NAME, user_input)
+        messages = self.token_manager.conversation_txt_history[:]
+        messages.append( {"role": constant.USER_NAME, "content": user_input})
+        if sys_messages:
+            # 将新数据添加到第一个位置
+            messages.insert(0, {"role": constant.SYSTEM_NAME, "content": sys_messages})
         url = "https://api.deepbricks.ai/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -39,13 +43,11 @@ class OpenaiTextApi:
         }
         data = {
             "model": self.model_name,
-
-            "messages": self.token_manager.conversation_txt_history,
+            "messages": messages,
             "stream": False
         }
-
         try:
-            response = requests.post(url, headers=headers, json=data)
+            response = requests.post(url, headers=headers, json=data, timeout=120)
             response.raise_for_status()  # 检查请求是否成功
 
             # 解析完整的 JSON 响应
@@ -56,25 +58,18 @@ class OpenaiTextApi:
             content = ""
             if 'choices' in response_data and len(response_data['choices']) > 0:
                 content = response_data['choices'][0].get('message', {}).get('content', '')
+                self.token_manager.add_txt_message(constant.USER_NAME, user_input)
                 self.token_manager.add_txt_message(constant.ASSISTANT_NAME, content)
-
-                print(content)
             else:
                 print("未找到生成的内容。")
             if self.cancel:
+                self.token_manager.remove_a_pair_history()
                 return None
             return content
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"请求失败: {e}")
-            messagebox.showwarning("错误", str(e))
-            return None
-        except json.JSONDecodeError as e:
-            print("响应内容不是有效的 JSON 格式。")
-            messagebox.showwarning("错误", str(e))
-            return None
-        except exception as e:
-            print("请求异常")
-            messagebox.showwarning("错误", str(e))
+            if error_win:
+                messagebox.showwarning("错误", str(e))
             return None
 
 
