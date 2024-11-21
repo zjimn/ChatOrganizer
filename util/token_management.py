@@ -6,7 +6,11 @@ class TokenManager:
     def __init__(self):
         reader = PreferenceReader(PREFERENCE_PROPERTIES_FILE)
         token_limit = reader.get("TOKEN_LIMIT", 0)
+        history_limit = reader.get("HISTORY_LIMIT", 0)
+        self.default_token_limit = token_limit
         self.token_limit = token_limit
+        self.default_history_limit = history_limit
+        self.history_limit = history_limit
         self.conversation_txt_history = []
         self.conversation_img_history = []
 
@@ -21,6 +25,33 @@ class TokenManager:
                 total_tokens -= self.estimate_token_count(removed_message['content'])
             else:
                 break
+        while self.history_limit != 0 and len(self.conversation_txt_history) > self.history_limit:
+            self.conversation_txt_history.pop(0)
+
+    def set_history_limit(self, count):
+        self.history_limit = count
+
+    def remove_a_pair_history(self):
+        if len(self.get_manage_txt_history()) > 1:
+            self.conversation_txt_history.pop()
+            self.conversation_txt_history.pop()
+
+    def reset_history_limit(self):
+        self.history_limit = self.default_history_limit
+
+    def set_token_limit(self, count):
+        self.token_limit = count
+
+    def reset_token_limit(self):
+        self.token_limit = self.default_token_limit
+
+    def enable_limit(self):
+        self.reset_token_limit()
+        self.reset_history_limit()
+
+    def disable_limit(self):
+        self.set_token_limit(0)
+        self.set_history_limit(0)
 
     def add_txt_message(self, role, content):
         self.conversation_txt_history.append({"role": role, "content": content})
