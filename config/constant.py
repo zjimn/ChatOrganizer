@@ -8,6 +8,7 @@ TYPE_OPTION_IMG_KEY = '1'
 PER_PAGE_COUNT_TXT = 20
 PER_PAGE_COUNT_IMG = 10
 USER_NAME = "user"
+SYSTEM_NAME = "system"
 ASSISTANT_NAME = "assistant"
 OPEN_FOLDER_IMAGE = "res/icon/folder_open.png"
 CLOSED_FOLDER_IMAGE = "res/icon/folder_close.png"
