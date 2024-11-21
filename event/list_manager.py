@@ -34,7 +34,7 @@ class ListManager:
         self.bind_events()
         ListEditor(main_window)
         self.order_by_column = "id"
-        self.sort_order_by = "asc"
+        self.sort_order_by = "desc"
         self.sort_reverse = {
             "id": False,
             "describe": False,
