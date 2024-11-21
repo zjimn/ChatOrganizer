@@ -33,13 +33,13 @@ class ListManager:
         self.content_service = ContentService()
         self.bind_events()
         ListEditor(main_window)
-        self.order_by_column = "id"
+        self.order_by_column = "create_time"
         self.sort_order_by = "desc"
         self.sort_reverse = {
             "id": False,
             "describe": False,
             "content": False,
-            "create_time": False
+            "create_time": True
         }
 
     def load_last_sort_order_by(self):
@@ -236,8 +236,8 @@ class ListManager:
             self.main_window.display_frame.search_input_text.after_cancel(self.delay_id)
         self.delay_id = self.main_window.display_frame.search_input_text.after(300, self.on_update_list)
 
-    def thread_update_list(self, sort_by=None, sort_order="asc"):
-        threading.Thread(target=lambda: self.update_treeview(sort_by, sort_order)).start()
+    def thread_update_list(self):
+        threading.Thread(target=lambda: self.update_treeview(self.order_by_column, self.sort_order_by)).start()
 
     def on_change_type_update_list(self, type=None):
         self.set_tree_by_type_option(type)
@@ -285,7 +285,7 @@ class ListManager:
         sort_order = "desc" if self.sort_reverse[col] else "asc"
         self.order_by_column = col
         self.sort_order_by = sort_order
-        self.thread_update_list(col, sort_order)
+        self.thread_update_list()
 
     def on_treeview_click(self, event):
         region = self.tree.identify_region(event.x, event.y)
