@@ -62,14 +62,10 @@ class OpenaiImageApi:
             if self.cancel:
                 return None
             return image_urls
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"请求失败: {e}")
-            messagebox.showwarning("错误", str(e))
-        except json.JSONDecodeError as e:
-            print("响应内容不是有效的 JSON 格式。")
-            messagebox.showwarning("错误", str(e))
-        except exception as e:
-            print(f"请求失败: {e}")
+            self.token_manager.conversation_txt_history.pop()
+            self.token_manager.conversation_txt_history.pop()
             messagebox.showwarning("错误", str(e))
 
 
