@@ -1,5 +1,7 @@
 from PIL import Image, ImageTk
 
+from util.logger import logger
+
 
 def resize_image(img, target_size):
     original_width, original_height = img.size
@@ -58,5 +60,5 @@ def open_img_replace_if_error(img_path, replace_img, size):
         img_tk = ImageTk.PhotoImage(img)
     except Exception as e:
         img_tk = replace_img
-        print(f"Error adding item with image: {e}")
+        logger.log('error', f"Error adding item with image: {e}")
     return img_tk
