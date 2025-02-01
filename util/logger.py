@@ -6,7 +6,7 @@ import colorlog
 from logging.handlers import RotatingFileHandler
 from colorama import Fore, Style
 
-from util.global_variables import GlobalVariables
+from util.config_manager import ConfigManager
 
 
 class Logger:
@@ -17,20 +17,21 @@ class Logger:
         self.log_full_file = None
         self.log_file = None
         self.enable_log = None
+        self.config_manager = ConfigManager()
         self.reload_config()
 
     def set_enable_logging(self, state):
         self.enable_log = state
 
     def reload_config(self):
-        log_file_path = GlobalVariables.get("log_folder")
+        log_file_path = self.config_manager.get("log_folder")
         if not log_file_path:
             self.log_full_file = None
             return
         default_log_dir = Path(log_file_path)
         if not default_log_dir.exists():
             default_log_dir.mkdir(parents=True, exist_ok=True)
-        self.enable_log = GlobalVariables.get("log_state", False)
+        self.enable_log = self.config_manager.get("log_state", False)
         self.log_file = "log.log"
         self.log_full_file = os.path.join(log_file_path, self.log_file)
         self.log_full_file = os.path.normpath(self.log_full_file)
@@ -84,21 +85,27 @@ class Logger:
     def log(self, level, message):
         if not self.enable_log or not self.log_full_file:
             return
-        if level == 'debug' and GlobalVariables.get("debug_log_state", False):
+        if level == 'debug' and self.config_manager.get("debug_log_state", False):
             logging.debug(message)
-        elif level == 'info' and GlobalVariables.get("info_log_state", True):
+            self.log_message(level, message)
+        elif level == 'info' and self.config_manager.get("info_log_state", True):
             logging.info(message)
-        elif level == 'request' and GlobalVariables.get("request_log_state", True):
+            self.log_message(level, message)
+        elif level == 'request' and self.config_manager.get("request_log_state", True):
             logging.info(message)
-        elif level == 'response' and GlobalVariables.get("response_log_state", True):
+            self.log_message(level, message)
+        elif level == 'response' and self.config_manager.get("response_log_state", True):
             logging.info(message)
-        elif level == 'warning' and GlobalVariables.get("warn_log_state", True):
+            self.log_message(level, message)
+        elif level == 'warning' and self.config_manager.get("warn_log_state", True):
             logging.warning(message)
-        elif level == 'error' and GlobalVariables.get("error_log_state", True):
+            self.log_message(level, message)
+        elif level == 'error' and self.config_manager.get("error_log_state", True):
             logging.error(message)
-        elif level == 'critical' and GlobalVariables.get("critical_log_state", False):
+            self.log_message(level, message)
+        elif level == 'critical' and self.config_manager.get("critical_log_state", False):
             logging.critical(message)
-        self.log_message(level, message)
+            self.log_message(level, message)
 
     def log_message(self, level, message):
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]
@@ -106,6 +113,10 @@ class Logger:
         if level == 'debug':
             print(Fore.GREEN + log_info + Style.RESET_ALL)
         if level == 'info':
+            print(Fore.BLUE + log_info + Style.RESET_ALL)
+        if level == 'request':
+            print(Fore.BLUE + log_info + Style.RESET_ALL)
+        if level == 'response':
             print(Fore.BLUE + log_info + Style.RESET_ALL)
         if level == 'warning':
             print(Fore.YELLOW + log_info + Style.RESET_ALL)
