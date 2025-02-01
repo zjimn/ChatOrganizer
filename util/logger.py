@@ -4,8 +4,10 @@ import os
 from pathlib import Path
 import colorlog
 from logging.handlers import RotatingFileHandler
-from config.app_config import AppConfig
-from colorama import Fore, Style, init
+from colorama import Fore, Style
+
+from util.global_variables import GlobalVariables
+
 
 class Logger:
     def __init__(self):
@@ -14,25 +16,21 @@ class Logger:
         self.max_file_size = None
         self.log_full_file = None
         self.log_file = None
-        self.logging_enabled = None
         self.enable_log = None
-        self.app_config = AppConfig()
         self.reload_config()
-
 
     def set_enable_logging(self, state):
         self.enable_log = state
 
     def reload_config(self):
-        log_file_path = self.app_config.get("log_folder")
+        log_file_path = GlobalVariables.get("log_folder")
         if not log_file_path:
             self.log_full_file = None
             return
         default_log_dir = Path(log_file_path)
         if not default_log_dir.exists():
             default_log_dir.mkdir(parents=True, exist_ok=True)
-        self.enable_log = True if self.app_config.get("log_state", '0') == '1' else False
-        self.logging_enabled = False if self.enable_log == '0' else True
+        self.enable_log = GlobalVariables.get("log_state", False)
         self.log_file = "log.log"
         self.log_full_file = os.path.join(log_file_path, self.log_file)
         self.log_full_file = os.path.normpath(self.log_full_file)
@@ -40,7 +38,7 @@ class Logger:
         self.log_level = "INFO"
         self.show_debug = True
 
-        if self.logging_enabled:
+        if self.enable_log:
             self._setup_logging()
             self.log('info', "Logging is enabled.")
         else:
@@ -86,22 +84,20 @@ class Logger:
     def log(self, level, message):
         if not self.enable_log or not self.log_full_file:
             return
-        if level == 'debug' and self.app_config.get("debug_log_state", '0') == '1':
+        if level == 'debug' and GlobalVariables.get("debug_log_state", False):
             logging.debug(message)
-        elif level == 'info' and self.app_config.get("info_log_state", '1') == '1':
+        elif level == 'info' and GlobalVariables.get("info_log_state", True):
             logging.info(message)
-        elif level == 'request' and self.app_config.get("request_log_state", '1') == '1':
+        elif level == 'request' and GlobalVariables.get("request_log_state", True):
             logging.info(message)
-        elif level == 'response' and self.app_config.get("response_log_state", '1') == '1':
+        elif level == 'response' and GlobalVariables.get("response_log_state", True):
             logging.info(message)
-        elif level == 'warning' and self.app_config.get("warn_log_state", '1') == '1':
+        elif level == 'warning' and GlobalVariables.get("warn_log_state", True):
             logging.warning(message)
-        elif level == 'error' and self.app_config.get("error_log_state", '1') == '1':
+        elif level == 'error' and GlobalVariables.get("error_log_state", True):
             logging.error(message)
-        elif level == 'critical' and self.app_config.get("critical_log_state", '0') == '1':
+        elif level == 'critical' and GlobalVariables.get("critical_log_state", False):
             logging.critical(message)
-        #else:
-            #logging.error(f"Unknown log level: {level}: {message}")
         self.log_message(level, message)
 
     def log_message(self, level, message):
