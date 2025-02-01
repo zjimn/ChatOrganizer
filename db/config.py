@@ -1,1 +1,1 @@
-DATABASE_URL = 'sqlite:///data/openai_interactions.db'
+DATABASE_URL = 'sqlite:///data/chat_data.db'
