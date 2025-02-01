@@ -62,7 +62,7 @@ class ContentHierarchyDataAccess:
     def get_all_children_by_parent_id(self, parent_id: int = None) -> List[ContentHierarchy]:
         try:
             if parent_id is not None:
-                parent_id = int(parent_id)
+                parent_id = parent_id
             all_records = (self.session.query(ContentHierarchy)
                            .filter(ContentHierarchy.delete_time.is_(None))
                            .order_by(asc(ContentHierarchy.parent_id), asc(ContentHierarchy.child_id))
