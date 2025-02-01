@@ -30,7 +30,7 @@ class TokenManager:
 
     def set_history_limit(self, count):
         if count is not None:
-            self.history_limit = int(count)
+            self.history_limit = count
 
     def remove_a_pair_history(self):
         if len(self.get_manage_txt_history()) > 1:
@@ -42,7 +42,7 @@ class TokenManager:
 
     def set_token_limit(self, count):
         if count is not None:
-            self.token_limit = int(count)
+            self.token_limit = count
 
     def reset_token_limit(self):
         self.token_limit = self.default_token_limit
