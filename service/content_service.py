@@ -5,6 +5,7 @@ from config.enum import ContentType
 from db.content_data_access import ContentDataAccess
 from db.dialogue_data_access import DialogueDataAccess
 from db.models import ContentData
+from util.logger import logger
 from util.str_util import get_chars_by_count
 
 
@@ -82,7 +83,7 @@ class ContentService:
         with ContentDataAccess() as cda:
             data = cda.get_data_by_id(content_id)
             if data is None:
-                print(f"No data found for content_id: {content_id}")
+                logger.log('warning', f"No data found for content_id: {content_id}")
                 return None
             content = self.merge_txt_content(data.dialogues, 50)
             new_data = ContentData(

@@ -3,6 +3,7 @@ from typing import Optional, List
 from sqlalchemy import update
 from db.database import Session
 from db.models import Dialogue
+from util.logger import logger
 
 
 class DialogueDataAccess:
@@ -27,7 +28,7 @@ class DialogueDataAccess:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
 
     def insert_data_by_object(self, data: Dialogue) -> int | None:
         new_data = data
@@ -37,7 +38,7 @@ class DialogueDataAccess:
             return new_data.id
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return None
 
     def get_data_by_id(self, data_id: int) -> Optional[Dialogue]:
@@ -46,7 +47,7 @@ class DialogueDataAccess:
                                                        Dialogue.delete_time.is_(None)).one_or_none()
             return data
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return None
 
     def get_all_data(self) -> List[Dialogue]:
@@ -54,7 +55,7 @@ class DialogueDataAccess:
             data_list = self.session.query(Dialogue).filter(Dialogue.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
 
     def get_data_by_content_id(self, content_id: int) -> List[Dialogue]:
@@ -63,7 +64,7 @@ class DialogueDataAccess:
                                                             Dialogue.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
 
     def update_data(self, data_id: int, role: str = None, message: str = None, img_path: str = None) -> None:
@@ -79,17 +80,17 @@ class DialogueDataAccess:
                     data.img_path = img_path
                 self.session.commit()
             else:
-                print("No record found with the provided ID.")
+                logger.log('error', "没有匹配指定id的数据")
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
 
     def batch_update_data(self, updates: list[Dialogue]) -> None:
         try:
             for dialogue in updates:
                 id = dialogue.id
                 if not id:
-                    print("Skipping update with missing data_id.")
+                    logger.log('warning', "Skipping update with missing data_id.")
                     continue
                 stmt = (
                     update(Dialogue)
@@ -104,7 +105,7 @@ class DialogueDataAccess:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred during batch update: {e}")
+            logger.log('error', f"An error occurred during batch update: {e}")
 
     def delete_data(self, data_id: int) -> None:
         try:
@@ -114,7 +115,7 @@ class DialogueDataAccess:
                 data.delete_time = datetime.now()
                 self.session.commit()
             else:
-                print("No record found with the provided ID.")
+                logger.log('error', "没有匹配指定id的数据")
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
