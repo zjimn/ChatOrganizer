@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Any
-from sqlalchemy import func, select, desc, asc
+from sqlalchemy import func, select, desc, asc, and_
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload, Query
@@ -8,6 +8,7 @@ from config.enum import ContentType
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 from db.database import Session
 from db.models import ContentData, Dialogue
+from util.logger import logger
 
 
 class ContentDataAccess:
@@ -35,7 +36,7 @@ class ContentDataAccess:
             return new_data.id
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return None
 
     def insert_data_by_object(self, data: ContentData) -> int | None:
@@ -46,7 +47,7 @@ class ContentDataAccess:
             return new_data.id
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return None
 
     def get_data_by_id(self, data_id: int) -> Optional[ContentData]:
@@ -62,7 +63,7 @@ class ContentDataAccess:
                     data.dialogues = [d for d in data.dialogues if d.delete_time is None]
                 return data
         except SQLAlchemyError as e:
-            print(f"An error occurred while retrieving data: {e}")
+            logger.log('error', e)
             return None
 
     def get_all_data(self) -> list:
@@ -70,7 +71,7 @@ class ContentDataAccess:
             data_list = self.session.query(ContentData).filter(ContentData.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
 
     def get_all_txt_data(self) -> List[ContentData]:
         try:
@@ -78,8 +79,30 @@ class ContentDataAccess:
                                                                ContentData.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
+
+    def parse_expression(self, expression, model, field):
+        or_parts = expression.split('||')
+        query_condition = None
+        or_conditions = []
+        for part in or_parts:
+            and_parts = part.split('&&')
+            and_condition = and_(*[self.parse_and_condition(part, model, field) for part in and_parts])
+            or_conditions.append(and_condition)
+        query_condition = or_(*or_conditions)
+        return query_condition
+
+    def parse_and_condition(self, part, model, field):
+        parts = part.split('&&')
+        and_conditions = [part.strip() for part in parts]
+        query_condition = and_(*[self.parse_single_condition(value, model, field) for value in and_conditions])
+        return query_condition
+
+    def parse_single_condition(self, value, model, field):
+        field = field.strip()
+        value = value.strip().strip("'")  # 去除可能的引号
+        return getattr(model, field).like(f"%{value}%")
 
     def _get_base_query(self, search: str, content_type, content_hierarchy_child_id, content_id) -> 'Query':
         content_hierarchy_data_access = ContentHierarchyDataAccess()
@@ -104,15 +127,21 @@ class ContentDataAccess:
                 )
             )
         else:
+            content_addition_condition = self.parse_expression(search, ContentData, "content")
+            dialogue_addition_condition = self.parse_expression(search, Dialogue, "message")
             dialogue_ids_query = (
                 self.session.query(Dialogue.content_id)
                 .filter(
-                    Dialogue.message.like(f"%{search}%"),
+                    # Dialogue.message.like(f"%{search}%"),
                     Dialogue.delete_time.is_(None),
                     or_(
                         content_id is None,
                         Dialogue.content_id == content_id
+                    ),
+                    and_(
+                        dialogue_addition_condition
                     )
+
                 )
                 .distinct()
             )
@@ -123,8 +152,10 @@ class ContentDataAccess:
                 .filter(
                     ContentData.type == content_type,
                     or_(
-                        ContentData.describe.like(f"%{search}%"),
+                        # ContentData.describe.like(f"%{search}%"),
+
                         ContentData.id.in_(dialogue_content_ids),
+                        content_addition_condition
                     ),
                     ContentData.delete_time.is_(None),
                     or_(
@@ -151,7 +182,7 @@ class ContentDataAccess:
                 self.session.expunge(item)
             return data_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
 
     def get_data_by_describe_or_content_by_page(self, search: str, content_type, page_number: int = 1,
@@ -177,7 +208,7 @@ class ContentDataAccess:
                 self.session.expunge(item)
             return data_list, total_count
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return [], 0
 
     def get_all_image_data(self) -> List[ContentData]:
@@ -186,7 +217,7 @@ class ContentDataAccess:
                                                                ContentData.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
 
     def update_data(self, data_id: int, content_type: str = None, content_hierarchy_child_id=None, describe: str = None,
@@ -207,10 +238,10 @@ class ContentDataAccess:
                     data.img_path = img_path
                 self.session.commit()
             else:
-                print("No record found with the provided ID.")
+                logger.log('error', "没有匹配指定id的数据")
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
 
     def delete_data(self, data_id: int) -> None:
         try:
@@ -222,7 +253,7 @@ class ContentDataAccess:
                     dialogue.delete_time = datetime.now()
                 self.session.commit()
             else:
-                print("No record found with the provided ID.")
+                logger.log('error', "没有匹配指定id的数据")
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
