@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext, ttk
 
 from util.searchable_scrolled_text import SearchableScrolledText
 
@@ -13,7 +13,7 @@ class OutputWindow:
         x = parent.winfo_x()
         y = parent.winfo_y()
         self.output_window.geometry(f"{800}x{630}+{x + 50}+{y + 50}")
-        self.output_frame = tk.Frame(self.output_window)
+        self.output_frame = ttk.Frame(self.output_window)
         self.output_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 20))
         self.output_window_canvas = tk.Canvas(self.output_frame, bg="#f0f0f0", width=600)
         self.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -21,7 +21,7 @@ class OutputWindow:
                                                     command=self.output_window_canvas.yview)
         self.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.output_window_canvas.configure(yscrollcommand=self.output_window_scrollbar.set)
-        self.output_window_scrollbar_frame = tk.Frame(self.output_window_canvas)
+        self.output_window_scrollbar_frame = ttk.Frame(self.output_window_canvas)
         self.output_window_canvas.create_window((0, 0), window=self.output_window_scrollbar_frame, anchor='nw')
         self.output_window_scrollbar_frame.bind("<Configure>", lambda e: self.output_window_canvas.configure(
             scrollregion=self.output_window_canvas.bbox("all")))
