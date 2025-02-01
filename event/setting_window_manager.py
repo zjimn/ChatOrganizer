@@ -137,7 +137,7 @@ class SettingWindowManager:
         log_state = self.setting_window.log_toggle_button.get_state()
 
         if log_state and not current_log_folder:
-            CustomConfirmDialog(title="警告", message="请选择日志保存目录")
+            CustomConfirmDialog(parent=self.main_window, title="警告", message="请选择日志保存目录")
             return False
 
         self.config_manager.set("api_key", api_key)
