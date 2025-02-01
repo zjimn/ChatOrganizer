@@ -1,12 +1,11 @@
 from config.constant import PREFERENCE_PROPERTIES_FILE
-from util.preference_reader import PreferenceReader
+from util.logger import Logger, logger
 
 
 class TokenManager:
     def __init__(self):
-        reader = PreferenceReader(PREFERENCE_PROPERTIES_FILE)
-        token_limit = reader.get("TOKEN_LIMIT", 0)
-        history_limit = reader.get("HISTORY_LIMIT", 0)
+        token_limit = 0
+        history_limit = 0
         self.default_token_limit = token_limit
         self.token_limit = token_limit
         self.default_history_limit = history_limit
@@ -15,10 +14,11 @@ class TokenManager:
         self.conversation_img_history = []
 
     def estimate_token_count(self, text):
-        return len(text) // 4
+        return len(text)
 
     def manage_txt_history(self):
         total_tokens = sum(self.estimate_token_count(message['content']) for message in self.conversation_txt_history)
+        logger.log('info', f'请求总字符数: {total_tokens}')
         while total_tokens > self.token_limit != 0:
             if self.conversation_txt_history:
                 removed_message = self.conversation_txt_history.pop(0)
@@ -29,7 +29,8 @@ class TokenManager:
             self.conversation_txt_history.pop(0)
 
     def set_history_limit(self, count):
-        self.history_limit = count
+        if count is not None:
+            self.history_limit = int(count)
 
     def remove_a_pair_history(self):
         if len(self.get_manage_txt_history()) > 1:
@@ -40,7 +41,8 @@ class TokenManager:
         self.history_limit = self.default_history_limit
 
     def set_token_limit(self, count):
-        self.token_limit = count
+        if count is not None:
+            self.token_limit = int(count)
 
     def reset_token_limit(self):
         self.token_limit = self.default_token_limit
@@ -87,4 +89,3 @@ class TokenManager:
 if __name__ == "__main__":
     token_manager = TokenManager(20)
     token_manager.add_txt_message("user", "Tell m.")
-    print(token_manager.get_manage_txt_history())
