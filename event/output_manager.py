@@ -10,11 +10,11 @@ from PIL import Image, ImageTk
 from api.openai_image_api import OpenaiImageApi
 from api.openai_text_api import OpenaiTextApi
 from config import constant
-from config.app_config import AppConfig
 from config.constant import LAST_TYPE_OPTION_KEY_NAME, ASSISTANT_NAME, TYPE_OPTION_TXT_KEY, \
     TYPE_OPTION_IMG_KEY, PREFERENCE_PROPERTIES_FILE
 from db.models import Dialogue
 from event.event_bus import event_bus
+from util.config_manager import ConfigManager
 from util.logger import logger
 from service.content_service import ContentService
 from util.image_viewer import ImageViewer
@@ -28,7 +28,7 @@ class OutputManager:
         self.main_window = main_window
         self.output_window = main_window.output_window
         self.root = main_window.root
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.output_window_canvas_scroll_enabled = None
         self.image_viewer = ImageViewer(self.root)
         self.focus_dialog_index = None
@@ -96,8 +96,8 @@ class OutputManager:
         if user_message is not None:
             self.text_inserter.insert_normal(user_content, font)
         if response_message is not None:
-            typewriter_effect = self.app_config.get("typewriter_effect", "1")
-            if typewriter_effect == "1":
+            typewriter_effect = self.config_manager.get("typewriter_effect", True)
+            if typewriter_effect:
                 self.text_inserter.set_color("#e6e6e6")
                 self.text_inserter.insert_text(response_content, 1000)
             else:
@@ -119,7 +119,7 @@ class OutputManager:
             self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
             return
         prompt = self.main_window.input_frame.input_text.get('1.0', 'end-1c')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
             new_data = Dialogue(
                 role="user",
                 message=prompt,
@@ -132,14 +132,14 @@ class OutputManager:
             self.show_text_append(self.main_window, prompt, None, self.session_id is not None)
             self.main_window.output_window.output_text.yview(tk.END)
         self.main_window.input_frame.frame.event_generate('<<RequestOpenaiBegin>>')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
             image_data = self.img_generator.create_image_from_text(prompt, selected_size)
             if image_data is None:
                 self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
                 return
             url = image_data[0]
             filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png")
-            file_path = Path(self.app_config.get("image_dir_path")) / filename
+            file_path = Path(self.config_manager.get("image_dir_path")) / filename
             img = self.download_img(url)
             img.save(file_path)
             dialogue_data = Dialogue(
@@ -278,7 +278,7 @@ class OutputManager:
     def on_output_window_canvas_mouse_wheel(self, event):
         if not self.output_window_canvas_scroll_enabled:
             return
-        if self.focus_dialog_index is not None or self.app_config.get(
+        if self.focus_dialog_index is not None or self.config_manager.get(
                 LAST_TYPE_OPTION_KEY_NAME) == constant.TYPE_OPTION_TXT_KEY:
             return
         self.main_window.output_window.output_window_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
@@ -352,7 +352,7 @@ class OutputManager:
             return
         item = main_window.display_frame.tree.selection()[0]
         values = main_window.display_frame.tree.item(item, 'values')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             self.session_id = values[0]
             self.set_output_text_default_background()
             data = self.content_service.load_txt_dialogs(self.session_id)
