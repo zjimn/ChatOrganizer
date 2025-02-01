@@ -1,8 +1,4 @@
-import math
-import tkinter as tk
-from config.app_config import AppConfig
-from config.constant import LAST_TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
-from config.enum import ViewType
+from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
 from event.event_bus import event_bus
 from event.model_viewer_manager import ModelViewerManager
 from event.preset_viewer_manager import PresetViewerManager
@@ -11,6 +7,7 @@ from service.DialogPresetService import DialoguePresetService
 from service.TreeService import TreeService
 from ui.model_viewer import ModelViewer
 from ui.preset_viewer import PresetViewer
+from util.config_manager import ConfigManager
 
 
 class TopBarManager:
@@ -32,7 +29,7 @@ class TopBarManager:
         self.model_var = main_window.top_bar.model_var
 
         self.setting_button = main_window.top_bar.setting_button
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         parent = main_window.root
         self.preset_viewer = PresetViewer(parent)
         self.model_viewer = ModelViewer(parent)
@@ -51,7 +48,7 @@ class TopBarManager:
 
     def set_model_type(self):
         model_type = "text"
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
             model_type = "img"
         self.model_type = model_type
 
@@ -72,7 +69,7 @@ class TopBarManager:
         if data:
             preset_id = data.id
             name, max_history_count, detail = self.dialogue_preset_service.get_data_by_id(preset_id)
-            self.app_config.set("max_history_count", max_history_count)
+            self.config_manager.set("max_history_count", max_history_count)
             sys_messages = [item.value for item in detail]
             event_bus.publish("DialogPresetChanged", preset_id = preset_id, sys_messages = sys_messages)
 
@@ -83,11 +80,11 @@ class TopBarManager:
             model_id = data.id
             model_name = data.name
             if self.model_type == "text":
-                self.app_config.set("text_model_id", model_id)
-                self.app_config.set("text_model_name", model_name)
+                self.config_manager.set("text_model_id", model_id)
+                self.config_manager.set("text_model_name", model_name)
             else:
-                self.app_config.set("img_model_id", model_id)
-                self.app_config.set("img_model_name", model_name)
+                self.config_manager.set("img_model_id", model_id)
+                self.config_manager.set("img_model_name", model_name)
             event_bus.publish("DialogModelChanged", model_name = model_name)
 
     def reload_dialog_preset(self, id = None):
@@ -108,14 +105,14 @@ class TopBarManager:
         if preset_index is None:
             self.preset_var.set("")
             self.selected_preset_id = None
-            self.app_config.set("max_history_count", "0")
+            self.config_manager.set("max_history_count", 0)
             event_bus.publish("DialogPresetLoaded", preset_id=None, sys_messages=[])
         if self.preset_options and preset_index is not None:
             self.selected_preset_id = self.preset_options[preset_index]
             self.preset_var.set(self.preset_options[preset_index])
             name, max_history_count, detail = self.dialogue_preset_service.get_data_by_id(preset_id)
             sys_messages = [item.value for item in detail]
-            self.app_config.set("max_history_count", max_history_count)
+            self.config_manager.set("max_history_count", max_history_count)
             event_bus.publish("DialogPresetLoaded", preset_id = preset_id, sys_messages = sys_messages)
         if len(self.preset_options) > 0:
             max_width = min(50, max(20, max(len(option) for option in self.preset_options)))
@@ -131,12 +128,13 @@ class TopBarManager:
 
     def reload_model_combobox(self):
         model_index = None
+        model_id = None
         if self.model_type == "text":
-            model_id = self.app_config.get("text_model_id")
+            model_id = self.config_manager.get("text_model_id")
         else:
-            model_id = self.app_config.get("img_model_id")
+            model_id = self.config_manager.get("img_model_id")
         for index, item in enumerate(self.dialog_model_data):
-            if model_id and item.id == int(model_id):
+            if model_id and item.id == model_id:
                 model_index = index
         new_options = [item.name for item in self.dialog_model_data]
         self.model_options = new_options
