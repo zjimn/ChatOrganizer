@@ -233,11 +233,13 @@ class TreeManager:
             self.current_item = None
 
     def on_item_press(self, event):
-        selected_item = self.get_selected_item_id()
-        self.dragged_item = self.tree_view.identify_row(event.y)
+        dragged_item_temp = self.tree_view.identify_row(event.y)
+        if not dragged_item_temp:
+            return
+        self.dragged_item = dragged_item_temp
         self.start_drag = False
         self.destroy_floating_label()
-        self.publish_press_event(self.dragged_item)
+        self.publish_press_event(int(self.dragged_item))
 
     def publish_press_event(self, item):
         self.app_config.set(LAST_SELECTED_TREE_ID_NAME, item)
