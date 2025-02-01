@@ -1,11 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox
+from tkinter import ttk
 from typing import Optional
-from config.app_config import AppConfig
 from config.constant import LAST_SELECTED_TREE_ID_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 from event.event_bus import event_bus
 from service.TreeService import TreeService
+from util.config_manager import ConfigManager
 from util.logger import logger
 from widget.confirm_dialog import ConfirmDialog
 from widget.custom_confirm_dialog import CustomConfirmDialog
@@ -18,7 +18,7 @@ class TreeManager:
         self.current_item = None
         self.main_window = main_window
         self.tree_view = main_window.directory_tree.tree
-        self.app_config = AppConfig()
+        self.app_config = ConfigManager()
         self._setup_context_menu()
         self.update_tree_from_db()
         self.dragged_item = None
