@@ -15,6 +15,7 @@ from config.constant import LAST_TYPE_OPTION_KEY_NAME, ASSISTANT_NAME, TYPE_OPTI
     TYPE_OPTION_IMG_KEY, PREFERENCE_PROPERTIES_FILE
 from db.models import Dialogue
 from event.event_bus import event_bus
+from util.logger import logger
 from util.preference_reader import PreferenceReader
 from service.content_service import ContentService
 from util.image_viewer import ImageViewer
@@ -36,6 +37,7 @@ class OutputManager:
         self.dialog_labels = []
         self.zoom_levels = []
         self.dialog_images = []
+        self.sys_messages = []
         self.set_output_window_pos()
         self.img_generator = OpenaiImageApi()
         self.txt_generator = OpenaiTextApi()
@@ -43,6 +45,10 @@ class OutputManager:
         self.selected_tree_id = None
         self.bind_events()
         self.text_inserter = TextInserter(self.root, self.main_window.output_window.output_text)
+        self.reload_model()
+
+    def reload_model(self):
+        event_bus.publish("ReloadDialogModel")
 
     def show_text(self, main_window, data, append=False):
         main_window.output_window.output_window.deiconify()
@@ -91,9 +97,8 @@ class OutputManager:
         if user_message is not None:
             self.text_inserter.insert_normal(user_content, font)
         if response_message is not None:
-            reader = PreferenceReader(PREFERENCE_PROPERTIES_FILE)
-            typewriter_effect = reader.get("TYPEWRITER_EFFECT", 0)
-            if typewriter_effect == 1:
+            typewriter_effect = self.app_config.get("typewriter_effect", "1")
+            if typewriter_effect == "1":
                 self.text_inserter.set_color("#e6e6e6")
                 self.text_inserter.insert_text(response_content, 1000)
             else:
@@ -147,7 +152,7 @@ class OutputManager:
                                                                    str(file_path))
         else:
             self.set_output_text_default_background()
-            answer = self.txt_generator.generate_gpt_completion(prompt)
+            answer = self.txt_generator.generate_gpt_completion(prompt, self.sys_messages)
             if answer is None:
                 self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
                 return
@@ -261,7 +266,7 @@ class OutputManager:
             try:
                 image.save(file_path)
             except Exception as e:
-                print(f"Failed to save image: {e}")
+                logger.log('error', f"Failed to save image: {e}")
 
     def on_right_click(self, event, image):
         menu = tk.Menu(self.root, tearoff=0)
@@ -316,7 +321,6 @@ class OutputManager:
         self.session_id = None
         self.txt_generator.cancel_request()
         self.img_generator.cancel_request()
-        self.img_generator.clear_history()
         self.txt_generator.clear_history()
         event_bus.publish('CloseOutputWindow')
         self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
@@ -360,21 +364,27 @@ class OutputManager:
         else:
             self.session_id = values[1]
             dialogs = self.content_service.load_img_dialogs(self.session_id)
-            self.img_generator.clear_history()
-            for item in dialogs:
-                if item.role == "user":
-                    self.img_generator.add_history_message("Prompt",
-                                                           item.message)
             self.set_dialog_images(dialogs)
+        event_bus.publish("OpenChatDetail")
 
     def thread_submit(self, event=None):
         threading.Thread(target=lambda: self.submit_prompt()).start()
+        event_bus.publish("OpenChatDetail")
 
     def cancel_request(self, event):
         if self.txt_generator:
             self.txt_generator.cancel_request()
         if self.img_generator:
             self.img_generator.cancel_request()
+
+    def update_sys_messages(self, preset_id, sys_messages):
+        self.sys_messages = sys_messages
+
+    def on_dialog_model_changed(self, model_name):
+        self.txt_generator.reload_model(model_name)
+
+    def on_dialog_setting_changed(self):
+        self.txt_generator.reload_config()
 
     def bind_tree_events(self):
         self.main_window.display_frame.tree.bind("<Double-1>",
@@ -383,7 +393,7 @@ class OutputManager:
 
     def bind_events(self):
         self.bind_tree_events()
-        self.output_window.output_window.protocol("WM_DELETE_WINDOW", self.on_close_output_window)
+        self.output_window.output_window.protocol("WM_DELETE_WINDOW", self.close_output_window)
         self.output_window.output_window.bind("<MouseWheel>", self.on_mouse_wheel)
         self.output_window.output_text.vbar.bind("<B1-Motion>", lambda event: self.on_output_text_scroll_drag(event))
         self.output_window.output_text.bind("<MouseWheel>", lambda event: self.on_output_text_scroll_drag(event))
@@ -392,5 +402,10 @@ class OutputManager:
         self.output_window.output_window_canvas.bind_all("<MouseWheel>", self.on_output_window_canvas_mouse_wheel)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
         event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
+        event_bus.subscribe('NewChat', self.close_output_window)
+        event_bus.subscribe('DialogPresetChanged', self.update_sys_messages)
+        event_bus.subscribe('DialogPresetLoaded', self.update_sys_messages)
+        event_bus.subscribe('DialogModelChanged', self.on_dialog_model_changed)
+        event_bus.subscribe('DialogSettingChanged', self.on_dialog_setting_changed)
         self.root.bind('<<SubmitRequest>>', lambda event: self.thread_submit(event))
         self.root.bind('<<CancelRequest>>', lambda event: self.cancel_request(event))
