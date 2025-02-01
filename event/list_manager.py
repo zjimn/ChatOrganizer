@@ -9,6 +9,7 @@ from event.event_bus import event_bus
 from event.list_editor import ListEditor
 from service.content_service import ContentService
 from util.image_util import open_img_replace_if_error
+from util.logger import logger
 from util.str_util import get_chars_by_count
 
 
@@ -28,6 +29,7 @@ class ListManager:
         self.set_tree_by_type_option()
         self.pagination_frame = main_window.display_frame.pagination_frame
         self.search_input_entry_text = main_window.display_frame.search_input_entry_text
+        self.search_button = main_window.display_frame.search_button
         self.image_list = []
         self.context_menu = tk.Menu(self.tree, tearoff=0)
         self.content_service = ContentService()
@@ -160,7 +162,7 @@ class ListManager:
                                     ), tags=(tag,))
             self.image_list.append(img_tk)
         except Exception as e:
-            print(f"Error adding item with image {prompt}: {e}")
+            logger.log('error', f'Error adding item with image {prompt}:{e}')
         return item
 
     def update_img_data_items(self, txt, selected_content_hierarchy_child_id=None, content_id=None, item_id=None,
@@ -224,9 +226,6 @@ class ListManager:
         self.tree.update_idletasks()
         self.tree.update()
 
-    def on_button_click(self, index):
-        print(f"Button clicked for item {index}")
-
     def on_update_list(self, *args):
         self.current_page = 1
         self.thread_update_list()
@@ -235,6 +234,9 @@ class ListManager:
         if self.delay_id:
             self.main_window.display_frame.search_input_text.after_cancel(self.delay_id)
         self.delay_id = self.main_window.display_frame.search_input_text.after(300, self.on_update_list)
+
+    def on_click_search_button(self, *args):
+        self.on_update_list()
 
     def thread_update_list(self):
         threading.Thread(target=lambda: self.update_treeview(self.order_by_column, self.sort_order_by)).start()
@@ -278,7 +280,7 @@ class ListManager:
                 try:
                     self.tree.delete(item)
                 except _tkinter.TclError as e:
-                    print(f"Error deleting item {item}: {e}")
+                    logger.log('error', f"Error deleting item {item}: {e}")
 
     def sort_column(self, col):
         self.sort_reverse[col] = not self.sort_reverse[col]
@@ -369,6 +371,7 @@ class ListManager:
         self.bind_tree_events()
         event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
         self.search_input_entry_text.trace_add('write', self.on_change_search_text)
+        self.search_button.bind("<Button-1>", self.on_click_search_button)
         self.main_window.directory_tree.tree.bind('<<TreeviewSelect>>', self.on_update_list)
         event_bus.subscribe('InsertListItems', self.on_insert_items)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
