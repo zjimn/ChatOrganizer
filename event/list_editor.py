@@ -1,9 +1,8 @@
 import tkinter as tk
 from datetime import datetime
 from tkinter import *
-from tkinter import messagebox, ttk, font
+from tkinter import ttk, font
 from PIL import ImageTk
-from config.app_config import AppConfig
 from config.constant import USER_NAME, ASSISTANT_NAME, LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, \
     LAST_SELECTED_TREE_ID_NAME
 from db.content_data_access import ContentDataAccess
@@ -15,6 +14,7 @@ from service.content_service import ContentService
 from ui.editor_directory_tree import EditorDirectoryTree
 from ui.scrollable_frame import ScrollableFrame
 from util import image_util
+from util.config_manager import ConfigManager
 from util.image_viewer import ImageViewer
 from util.window_util import center_window
 from widget.confirm_dialog import ConfirmDialog
@@ -37,7 +37,7 @@ class ListEditor:
         self.main_window = main_window
         self.list_tree = main_window.display_frame.tree
         self.content_service = ContentService()
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.context_menu = Menu(self.parent, tearoff=0)
         self.context_menu.add_command(label="复制到", command=lambda: self.move_or_copy_selected_item(is_move=False))
         self.context_menu.add_command(label="移动到", command=lambda: self.move_or_copy_selected_item(is_move=True))
@@ -143,11 +143,11 @@ class ListEditor:
 
     def get_selected_list_content_ids_and_tree_id(self):
         selected_items = self.list_tree.selection()
-        selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
+        selected_tree_id = self.config_manager.get(LAST_SELECTED_TREE_ID_NAME)
         result = []
         for item in selected_items:
             list_item_values = self.list_tree.item(item, 'values')
-            if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
                 content_id = list_item_values[0]
             else:
                 content_id = list_item_values[1]
@@ -229,7 +229,7 @@ class ListEditor:
         description_label.pack(side=TOP, anchor=W)
         selected_item = self.list_tree.selection()[0]
         list_item_values = self.list_tree.item(selected_item, 'values')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             content_id = list_item_values[0]
         else:
             content_id = list_item_values[1]

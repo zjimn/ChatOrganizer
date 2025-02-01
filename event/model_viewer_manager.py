@@ -1,22 +1,20 @@
 from datetime import datetime
-from tkinter import font, ttk, messagebox
+from tkinter import font, ttk
 import tkinter as tk
 
-from config.app_config import AppConfig
-from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY
-from db.models import DialoguePresetDetail, DialogueModel
+from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY, TYPE_OPTION_TXT_KEY
+from db.models import DialogueModel
 from event.event_bus import event_bus
 from service.DialogModelService import DialogueModelService
-from service.DialogPresetService import DialoguePresetService
+from util.config_manager import ConfigManager
 from util.undo_redo_entry import UndoRedoEntry
 from util.window_util import center_window
-from widget.confirm_dialog import ConfirmDialog
 
 
 class ModelViewerManager:
     def __init__(self, parent, model_viewer):
         self.model_type = None
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.selected_item = None
         self.title_name_text_var = None
         self.parent = parent
@@ -46,7 +44,7 @@ class ModelViewerManager:
 
     def set_model_type(self):
         model_type = "text"
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
             model_type = "img"
         self.model_type = model_type
 

@@ -4,7 +4,7 @@ from tkinter import messagebox
 
 from dotenv import load_dotenv
 from config import constant
-from config.app_config import AppConfig
+from util.config_manager import ConfigManager
 from util.logger import Logger, logger
 from util.resource_util import resource_path
 from util.token_management import TokenManager
@@ -20,17 +20,17 @@ class OpenaiTextApi:
         self.token_manager = TokenManager()
         dotenv_path = resource_path('.env')
         load_dotenv(dotenv_path)
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.model_name = ""
         self.api_key =""
         self.reload_config()
         self.chat_url = "https://api.deepbricks.ai/v1/chat/completions"
 
     def reload_config(self):
-        api_key = self.app_config.get("api_key")
-        max_token = self.app_config.get("max_token")
-        max_history_count = self.app_config.get("max_history_count")
-        model_name = self.app_config.get("text_model_name")
+        api_key = self.config_manager.get("api_key")
+        max_token = self.config_manager.get("max_token", 0)
+        max_history_count = self.config_manager.get("max_history_count", 0)
+        model_name = self.config_manager.get("text_model_name")
         if model_name is not None:
             self.model_name = model_name
         if api_key is not None:

@@ -1,9 +1,8 @@
 import math
 import tkinter as tk
-from config.app_config import AppConfig
 from config.constant import LAST_TYPE_OPTION_KEY_NAME, IMG_SIZE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
-from config.enum import ViewType
 from event.event_bus import event_bus
+from util.config_manager import ConfigManager
 
 
 class InputManager:
@@ -11,25 +10,25 @@ class InputManager:
         self.main_window = main_window
         self.input_frame = main_window.input_frame
         self.root = main_window.root
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.init_option()
         self.bind_events()
 
     def on_type_option_change(self):
         self.update_option()
         if self.input_frame.option_var.get() == self.main_window.input_frame.type_options[1]:
-            self.app_config.set(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY)
+            self.config_manager.set(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY)
             type = TYPE_OPTION_IMG_KEY
         else:
-            self.app_config.set(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+            self.config_manager.set(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
             type = TYPE_OPTION_TXT_KEY
         event_bus.publish('ChangeTypeUpdateList', type=type)
 
     def init_option(self):
-        option_index = self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, "0")
-        size_option_index = self.app_config.get(IMG_SIZE_OPTION_KEY_NAME, "0")
-        selected_type_option = self.input_frame.type_options[int(option_index)]
-        selected_size_option = self.input_frame.size_options[int(size_option_index)]
+        option_index = self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+        size_option_index = self.config_manager.get(IMG_SIZE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+        selected_type_option = self.input_frame.type_options[option_index]
+        selected_size_option = self.input_frame.size_options[size_option_index]
         self.input_frame.option_var.set(selected_type_option)
         self.input_frame.size_var.set(selected_size_option)
         self.update_option()
@@ -45,7 +44,7 @@ class InputManager:
         size_options = ["1024x1024", "1792x1024", "1024x1792"]
         for index, option in enumerate(size_options):
             if self.input_frame.size_var.get() == option:
-                self.app_config.set(IMG_SIZE_OPTION_KEY_NAME, str(index))
+                self.config_manager.set(IMG_SIZE_OPTION_KEY_NAME, index)
                 break
 
     def check_and_submit(self, event):

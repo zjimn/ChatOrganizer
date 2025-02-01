@@ -3,7 +3,7 @@ from db.content_hierarchy_access import ContentHierarchyDataAccess
 from db.dialogue_model_access import DialogueModelAccess
 from db.dialogue_preset_access import DialoguePresetAccess
 from db.dialogue_preset_detail_access import DialoguePresetDetailAccess
-from db.models import DialogueModel
+from util.config_manager import ConfigManager
 from util.logger import logger
 
 
@@ -11,11 +11,11 @@ class DataInitializer:
     def __init__(self):
         self.default_text_model_id = None
         self.default_img_model_id = None
-        self.cda = ConfigDataAccess()
         self.chda = ContentHierarchyDataAccess()
         self.dma = DialogueModelAccess()
         self.dpa = DialoguePresetAccess()
         self.dpda = DialoguePresetDetailAccess()
+        self.config_manager = ConfigManager()
 
     def insert_default_content_hierarchy(self):
         try:
@@ -31,16 +31,13 @@ class DataInitializer:
 
     def insert_default_config(self):
         try:
-            with self.cda as cda:
-                exist = cda.has_data()
-                if not exist:
-                    cda.insert_config("text_model_id", self.default_text_model_id)
-                    cda.insert_config("text_model_name", "GPT-3.5-turbo")
-                    cda.insert_config("img_model_id", self.default_img_model_id)
-                    cda.insert_config("img_model_name", "dall-e-3")
-                    logger.log('info', "insert default config data")
-                else:
-                    pass
+            if self.default_text_model_id:
+                self.config_manager.set("text_model_id", self.default_text_model_id)
+                self.config_manager.set("text_model_name", "GPT-3.5-turbo")
+            if self.default_img_model_id:
+                self.config_manager.set("img_model_id", self.default_img_model_id)
+                self.config_manager.set("img_model_name", "dall-e-3")
+            logger.log('info', "insert default config data")
         except Exception as e:
             logger.log('error', f"insert default config data error: {e}")
 

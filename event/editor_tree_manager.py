@@ -4,10 +4,10 @@ from typing import Optional
 
 from ttkbootstrap import Style
 
-from config.app_config import AppConfig
 from config.constant import LAST_SELECTED_TREE_ID_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 from ui.syle.tree_view_style_manager import TreeViewStyleManager
+from util.config_manager import ConfigManager
 
 
 class EditorTreeManager:
@@ -16,7 +16,7 @@ class EditorTreeManager:
         self.current_item = None
         self.edit_tree = edit_tree
         self.tree_view = edit_tree.tree
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         # self.style = ttk.Style()
         self.style = Style(theme="flatly")
         self.style_manager = TreeViewStyleManager(self.tree_view)
@@ -34,9 +34,8 @@ class EditorTreeManager:
                 self.tree_view.see(item)
 
     def set_focus_to_first_item(self):
-        selected_items = self.tree_view.selection()
         first_item = None
-        last_selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
+        last_selected_tree_id = self.config_manager.get(LAST_SELECTED_TREE_ID_NAME)
         if last_selected_tree_id is not None and self.tree_view.exists(last_selected_tree_id):
             first_item = last_selected_tree_id
         if first_item is None and len(self.tree_view.get_children()) > 0:
