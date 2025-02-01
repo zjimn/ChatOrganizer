@@ -26,7 +26,7 @@ class ImageViewer:
         min_rate = min(original_width / min_width, original_height / min_height)
         img_width = int(original_width * min_rate * 0.5)
         img_height = int(original_height * min_rate * 0.5)
-        center_window(new_window, img_width, img_height)
+        center_window(new_window, self.parent, img_width, img_height)
         photo = ImageTk.PhotoImage(img)
         img_label = Label(new_window, image=photo)
         img_label.image = photo
