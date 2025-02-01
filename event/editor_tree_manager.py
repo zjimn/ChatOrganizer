@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 from typing import Optional
+
+from ttkbootstrap import Style
+
 from config.app_config import AppConfig
 from config.constant import LAST_SELECTED_TREE_ID_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
@@ -14,7 +17,8 @@ class EditorTreeManager:
         self.edit_tree = edit_tree
         self.tree_view = edit_tree.tree
         self.app_config = AppConfig()
-        self.style = ttk.Style()
+        # self.style = ttk.Style()
+        self.style = Style(theme="flatly")
         self.style_manager = TreeViewStyleManager(self.tree_view)
         self.style_manager.set_list_editor_tree_style()
         self.update_tree_from_db()
@@ -42,7 +46,7 @@ class EditorTreeManager:
         self.tree_view.see(first_item)
 
     def _insert_tree_item(self, parent_id: Optional[int], item_id: int, text: str):
-        parent_item = parent_id if parent_id else ""
+        parent_item = parent_id if parent_id is not None else ''
         self.tree_view.insert(parent_item, 'end', iid=item_id, text="  " + text,
                               image=self.edit_tree.closed_folder_resized_icon)
 
