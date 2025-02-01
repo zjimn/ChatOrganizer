@@ -1,11 +1,12 @@
 from tkinter import ttk
 
+from ttkbootstrap import Style
+
 
 class TreeViewStyleManager:
     def __init__(self, tree):
         self.tree = tree
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
+        self.style = Style(theme= "flatly")
         self.tree.tag_configure('even', background='#f0f0f0', foreground='#505050')
         self.tree.tag_configure('odd', background='white', foreground='#505050')
 
