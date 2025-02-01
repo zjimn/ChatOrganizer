@@ -7,6 +7,14 @@ class GlobalVariables:
         cls._global_dict[key] = value
 
     @classmethod
+    def set_variables(cls, data):
+        cls._global_dict = data
+
+    @classmethod
+    def get_variables(cls):
+        return cls._global_dict
+
+    @classmethod
     def get(cls, key, default=None):
         return cls._global_dict.get(key, default)
 
