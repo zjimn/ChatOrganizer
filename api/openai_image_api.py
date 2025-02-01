@@ -4,9 +4,13 @@ from tkinter import messagebox
 
 from dotenv import load_dotenv
 
+from util.logger import logger
 from util.token_management import TokenManager
 import requests
 import json
+
+from widget.custom_confirm_dialog import CustomConfirmDialog
+
 
 class OpenaiImageApi:
     def __init__(self):
@@ -16,19 +20,11 @@ class OpenaiImageApi:
         self.api_key = os.getenv("API_KEY")
         self.cancel = False
 
-
-    def clear_history(self):
-        self.token_manager.clear_img_history()
-
-    def add_history_message(self, action, content):
-        self.token_manager.add_img_message(action, content)
-
     def cancel_request(self):
         self.cancel = True
 
     def create_image_from_text(self, prompt, size, n = 1):
         self.cancel = False
-        self.token_manager.add_img_message("Prompt", prompt)
         url = "https://api.deepbricks.ai/v1/images/generations"
 
         if not self.api_key:
@@ -57,17 +53,12 @@ class OpenaiImageApi:
                 for item in data['data']:
                     image_url = item.get('url', '')
                     image_urls.append(image_url)
-            image_urls_string = ', '.join(image_urls)
-            self.token_manager.add_img_message("Response", image_urls_string)
             if self.cancel:
                 return None
             return image_urls
         except Exception as e:
-            print(f"请求失败: {e}")
-            self.token_manager.conversation_txt_history.pop()
-            self.token_manager.conversation_txt_history.pop()
-            messagebox.showwarning("错误", str(e))
-
+            logger.log('error', e)
+            CustomConfirmDialog(title="错误", message="请求异常，稍后重试")
 
 if __name__ == "__main__":
     img_generator = OpenaiImageApi()
