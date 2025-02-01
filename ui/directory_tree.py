@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 from PIL import ImageTk
+from ttkbootstrap import Style
+
 from config import constant
 from ui.syle.tree_view_style_manager import TreeViewStyleManager
 from util import image_util
@@ -9,7 +11,19 @@ from util import image_util
 class DirectoryTree:
     def __init__(self, parent):
         self.parent = parent
-        self.left_frame = tk.Frame(parent, width=100)
+        self.left_frame = ttk.Frame(parent, width=100)
+        self.style = Style(theme="flatly")
+        self.style.configure('Tree.Treeview',
+                             rowheight=40, font=("微软雅黑", 12),
+                             padding=(5, 10, 5, 10),
+                             fieldbackground='white',
+                             background='white',
+                             foreground='#0d0d0d',
+                             bordercolor='#cccccc',
+                             borderwidth=10,
+                             highlightthickness=1,
+                             bd=1,
+                             )
         self.tree = ttk.Treeview(self.left_frame, show='tree', style='Tree.Treeview')
         self.tree.column("#0", width=150)
         self.tree.pack(expand=True, fill="both")
