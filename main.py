@@ -1,6 +1,5 @@
 import tkinter as tk
 
-from config.app_config import AppConfig
 from db.data_initializer import DataInitializer
 from db.database import init_db
 from db.init_folder import init_folder
@@ -12,16 +11,13 @@ from event.output_manager import OutputManager
 from event.setting_window_manager import SettingWindowManager
 from event.top_bar_manager import TopBarManager
 from event.tree_manager import TreeManager
-from ui.advanced_log_window import AdvancedLogWindow
 from ui.main_window import MainWindow
-from util.load_manager import LoadManager
 from util.window_util import center_window
 
 
 def initialize_application():
     init_folder()
     init_db()
-    LoadManager()
     data_initializer = DataInitializer()
     data_initializer.initialize()
 
