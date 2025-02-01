@@ -3,10 +3,23 @@ from tkinter import ttk
 from PIL import ImageTk
 from config import constant
 from util import image_util
+from ttkbootstrap import Style
 
 
 class EditorDirectoryTree:
     def __init__(self, parent):
+        self.style = Style(theme="flatly")
+        self.style.configure('Editor.Tree.Treeview',
+                             rowheight=25, font=("微软雅黑", 10),
+                             padding=(5, 10, 5, 10),
+                             fieldbackground='white',
+                             background='white',
+                             foreground='#0d0d0d',
+                             bordercolor='#cccccc',
+                             borderwidth=10,
+                             highlightthickness=1,
+                             bd=1,
+                             )
         self.tree = ttk.Treeview(parent, show="tree", style='Editor.Tree.Treeview', height=5)
         self.tree.column("#0", width=100, stretch=True)
         self.tree.pack(fill=tk.BOTH, expand=True)
