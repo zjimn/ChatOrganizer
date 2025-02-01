@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db.database import Session
 from db.models import ContentHierarchy, ContentData, Dialogue
+from util.logger import logger
 
 
 class ContentHierarchyDataAccess:
@@ -29,15 +30,15 @@ class ContentHierarchyDataAccess:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
 
-    def get_data_by_id(self, data_id: int) -> Optional[ContentHierarchy]:
+    def get_data_by_child_id(self, data_id: int) -> Optional[ContentHierarchy]:
         try:
-            data = self.session.query(ContentHierarchy).filter(ContentHierarchy.id == data_id,
+            data = self.session.query(ContentHierarchy).filter(ContentHierarchy.child_id == data_id,
                                                                ContentHierarchy.delete_time.is_(None)).one_or_none()
             return data
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return None
 
     def get_all_data(self) -> List[ContentHierarchy]:
@@ -45,7 +46,7 @@ class ContentHierarchyDataAccess:
             data_list = self.get_all_children_by_parent_id()
             return data_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
 
     def has_data(self) -> bool:
@@ -55,7 +56,7 @@ class ContentHierarchyDataAccess:
             ).first() is not None
             return exists
         except SQLAlchemyError as e:
-            print(f"检查数据存在性时发生错误: {e}")
+            logger.log('error', e)
             return False
 
     def get_all_children_by_parent_id(self, parent_id: int = None) -> List[ContentHierarchy]:
@@ -88,11 +89,11 @@ class ContentHierarchyDataAccess:
                         result.append(record)
             return result
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
 
     def update_data(self, child_id: int, parent_id: Optional[int] = None, name: Optional[str] = None,
-                    level: Optional[int] = None) -> None:
+                    level: Optional[int] = None, preset_id: Optional[int] = None) -> None:
         try:
             data = self.session.query(ContentHierarchy).filter(ContentHierarchy.child_id == child_id,
                                                                ContentHierarchy.delete_time.is_(None)).one_or_none()
@@ -103,12 +104,27 @@ class ContentHierarchyDataAccess:
                     data.name = name
                 if level is not None:
                     data.level = level
+                if preset_id is not None:
+                    data.preset_id = preset_id
                 self.session.commit()
             else:
-                print("No record found with the provided ID.")
+                logger.log('error', "没有匹配指定id的数据")
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
+
+    def delete_preset(self, child_id: int) -> None:
+        try:
+            data = self.session.query(ContentHierarchy).filter(ContentHierarchy.child_id == child_id,
+                                                               ContentHierarchy.delete_time.is_(None)).one_or_none()
+            if data:
+                data.preset_id = None
+                self.session.commit()
+            else:
+                logger.log('error', "没有匹配指定id的数据")
+        except Exception as e:
+            self.session.rollback()
+            logger.log('error', e)
 
     def delete_data(self, child_id: int) -> None:
         try:
@@ -135,4 +151,4 @@ class ContentHierarchyDataAccess:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
