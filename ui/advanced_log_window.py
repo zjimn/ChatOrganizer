@@ -11,7 +11,7 @@ from widget.icon_toggle_button import IconToggleButton
 class AdvancedLogWindow:
     def __init__(self, root):
         self.win_width = 270
-        self.win_height = 250
+        self.win_height = 300
         self.root = root
         self.main_window = None
         self._init()
@@ -31,6 +31,7 @@ class AdvancedLogWindow:
 
         self.first_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
         self.second_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
+        self.third_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
 
         self.info_log_frame = ttk.Frame(self.first_frame, borderwidth=0, relief=tk.RAISED)
         info_log_label = ttk.Label(self.info_log_frame, text="信息", font=("Microsoft YaHei UI", 10))
@@ -38,8 +39,6 @@ class AdvancedLogWindow:
         self.info_log_toggle_button = IconToggleButton(self.info_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
         self.info_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.info_log_toggle_button.set_state(True)
-        # type_effect_express_label = ttk.Label(self.type_effect_frame, text="(逐字打印输出)", font=("Microsoft YaHei UI", 9))
-        # type_effect_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
         self.warn_log_frame = ttk.Frame(self.first_frame, borderwidth=0, relief=tk.RAISED)
         warn_log_label = ttk.Label(self.warn_log_frame, text="警告", font=("Microsoft YaHei UI", 10))
@@ -47,8 +46,6 @@ class AdvancedLogWindow:
         self.warn_log_toggle_button = IconToggleButton(self.warn_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
         self.warn_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.warn_log_toggle_button.set_state(True)
-        # type_effect_express_label = ttk.Label(self.type_effect_frame, text="(逐字打印输出)", font=("Microsoft YaHei UI", 9))
-        # type_effect_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
         self.error_log_frame = ttk.Frame(self.second_frame, borderwidth=0, relief=tk.RAISED)
         error_log_label = ttk.Label(self.error_log_frame, text="错误", font=("Microsoft YaHei UI", 10))
@@ -56,17 +53,15 @@ class AdvancedLogWindow:
         self.error_log_toggle_button = IconToggleButton(self.error_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
         self.error_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.error_log_toggle_button.set_state(True)
-        # type_effect_express_label = ttk.Label(self.type_effect_frame, text="(逐字打印输出)", font=("Microsoft YaHei UI", 9))
-        # type_effect_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
-        self.sql_log_frame = ttk.Frame(self.second_frame, borderwidth=0, relief=tk.RAISED)
+        self.sql_log_frame = ttk.Frame(self.third_frame, borderwidth=0, relief=tk.RAISED)
         sql_log_label = ttk.Label(self.sql_log_frame, text="SQL", font=("Microsoft YaHei UI", 10))
         sql_log_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
         self.sql_log_toggle_button = IconToggleButton(self.sql_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
         self.sql_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.sql_log_toggle_button.set_state(True)
-        # type_effect_express_label = ttk.Label(self.type_effect_frame, text="(逐字打印输出)", font=("Microsoft YaHei UI", 9))
-        # type_effect_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
+        sql_log_express_label = ttk.Label(self.sql_log_frame, text="(重启后生效)", font=("Microsoft YaHei UI", 9))
+        sql_log_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
         self.request_log_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
         request_log_label = ttk.Label(self.request_log_frame, text="请求", font=("Microsoft YaHei UI", 10))
@@ -96,6 +91,7 @@ class AdvancedLogWindow:
         self.error_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
         self.sql_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
         self.second_frame.pack(side = tk.TOP, fill=tk.X, padx=0, pady=(0, 0))
+        self.third_frame.pack(side = tk.TOP, fill=tk.X, padx=0, pady=(0, 0))
 
         self.request_log_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=(0, 0))
         self.response_log_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=(0, 0))
