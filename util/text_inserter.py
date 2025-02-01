@@ -63,7 +63,7 @@ class TextInserter:
 
     def parse_special_sections(self, content):
         self.sections = []
-        matches = re.finditer(r"```(?:python)?(.*?)```|-\s`([^`]+)`", content, re.DOTALL)
+        matches = re.finditer(r"```(?:python)?(.*?)```|`([^`]+)`", content, re.DOTALL)
         last_end = 0
         for match in matches:
             start = match.start()
