@@ -54,6 +54,9 @@ class AdvancedLogWindow:
         self.error_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.error_log_toggle_button.set_state(True)
 
+        self.separator_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
+        self.separator = ttk.Separator(self.separator_frame, orient="horizontal")
+
         self.sql_log_frame = ttk.Frame(self.third_frame, borderwidth=0, relief=tk.RAISED)
         sql_log_label = ttk.Label(self.sql_log_frame, text="SQL", font=("Microsoft YaHei UI", 10))
         sql_log_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
@@ -88,10 +91,13 @@ class AdvancedLogWindow:
         self.warn_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
         self.first_frame.pack(side = tk.TOP, fill=tk.X, padx=0, pady=(0, 0))
 
-        self.error_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
-        self.sql_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
+        self.error_log_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=(0, 0))
         self.second_frame.pack(side = tk.TOP, fill=tk.X, padx=0, pady=(0, 0))
-        self.third_frame.pack(side = tk.TOP, fill=tk.X, padx=0, pady=(0, 0))
+        self.separator_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=(5, 0))
+        self.separator.pack(side="left", fill="x", padx=10, expand = True)
+        self.sql_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
+
+        self.third_frame.pack(side = tk.TOP, fill=tk.X, padx=0, pady=(10, 0))
 
         self.request_log_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=(0, 0))
         self.response_log_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=(0, 0))
