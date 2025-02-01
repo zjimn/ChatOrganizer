@@ -14,3 +14,8 @@ OPEN_FOLDER_IMAGE = "res/icon/folder_open.png"
 CLOSED_FOLDER_IMAGE = "res/icon/folder_close.png"
 IMAGE_DIR_PATH = "data/image"
 PREFERENCE_PROPERTIES_FILE = "preference.properties"
+
+TOGGLE_BUTTON_CHECK_IMAGE_PATH = "res/icon/toggle_on.png"
+TOGGLE_BUTTON_UNCHECK_IMAGE_PATH = "res/icon/toggle_off.png"
+APP_NAME = "ChatOrganizer"
+LOG_FOLDER = "logs"
