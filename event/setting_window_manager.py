@@ -1,13 +1,12 @@
 from pathlib import Path
-from tkinter import font, messagebox, filedialog
+from tkinter import font, filedialog
 import tkinter as tk
 
-from exceptiongroup import catch
 
 from api.openai_text_api import OpenaiTextApi
-from config.app_config import AppConfig
 from config.constant import APP_NAME, LOG_FOLDER
 from event.event_bus import event_bus
+from util.config_manager import ConfigManager
 from util.file_util import get_documents_directory
 from util.logger import Logger, logger
 from util.window_util import center_window
@@ -19,7 +18,7 @@ class SettingWindowManager:
     def __init__(self, main_window):
         self.selected_log_directory = None
         self.settings_window = main_window.settings_window
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.root = self.settings_window.root
         self.main_window = self.settings_window.main_window
         self.setting_window = self.settings_window
@@ -61,7 +60,7 @@ class SettingWindowManager:
         self.open()
 
     def open_setting_if_api_key_is_none(self):
-        api_key = self.app_config.get("api_key")
+        api_key = self.config_manager.get("api_key")
         if not api_key:
             self.root.after(500,  self.open)
 
@@ -76,26 +75,23 @@ class SettingWindowManager:
         self.load_setting()
 
     def load_setting(self):
-        api_key = self.app_config.get("api_key")
-        max_token = self.app_config.get("max_token", "0")
-        typewriter_effect_state = self.app_config.get("typewriter_effect", "1")
-        current_log_folder = self.app_config.get("log_folder")
-        current_log_state = self.app_config.get("log_state", "0")
+        api_key = self.config_manager.get("api_key")
+        max_token = self.config_manager.get("max_token", 0)
+        typewriter_effect_state = self.config_manager.get("typewriter_effect", True)
+        current_log_folder = self.config_manager.get("log_folder")
+        current_log_state = self.config_manager.get("log_state", False)
         self.setting_window.api_key_input_text_var.set(value="")
         if api_key:
             self.setting_window.api_key_input_text_var.set(value=api_key)
-        self.setting_window.max_token_toggle_button.set_state(max_token != '0')
+        self.setting_window.max_token_toggle_button.set_state(max_token != 0)
         self.setting_window.log_entry.delete(0, tk.END)
-        self.setting_window.log_entry.insert(0, current_log_folder)
-        self.display_max_token_slider(max_token != '0', max_token)
-        self.setting_window.log_toggle_button.set_state(True if current_log_state == "1" else False)
+        if current_log_folder:
+            self.setting_window.log_entry.insert(0, current_log_folder)
+        self.display_max_token_slider(max_token != 0, max_token)
+        self.setting_window.log_toggle_button.set_state(current_log_state)
 
-        if typewriter_effect_state is not None and typewriter_effect_state != "":
-            self.setting_window.type_effect_toggle_button.set_state(True if typewriter_effect_state == "1" else False)
+        self.setting_window.type_effect_toggle_button.set_state(typewriter_effect_state)
         self.check_input_text()
-
-    def on_apply(self):
-        self.set_setting()
 
     def open_advanced_window(self, event):
         event_bus.publish("OpenAdvancedLogWindow")
@@ -136,16 +132,22 @@ class SettingWindowManager:
         current_log_folder = self.setting_window.log_entry.get()
         max_token_state = self.settings_window.max_token_toggle_button.get_state()
         if not max_token_state:
-            max_token = '0'
+            max_token = 0
         typewriter_effect_state = self.setting_window.type_effect_toggle_button.get_state()
         log_state = self.setting_window.log_toggle_button.get_state()
-        self.app_config.set("api_key", api_key)
-        self.app_config.set("max_token", str(max_token))
-        self.app_config.set("typewriter_effect", "1" if typewriter_effect_state else "0")
-        self.app_config.set("log_folder", current_log_folder)
-        self.app_config.set("log_state", "1" if log_state else "0")
+
+        if log_state and not current_log_folder:
+            CustomConfirmDialog(title="警告", message="请选择日志保存目录")
+            return False
+
+        self.config_manager.set("api_key", api_key)
+        self.config_manager.set("max_token", max_token)
+        self.config_manager.set("typewriter_effect", typewriter_effect_state)
+        self.config_manager.set("log_folder", current_log_folder)
+        self.config_manager.set("log_state", log_state)
         logger.reload_config()
         event_bus.publish("DialogSettingChanged")
+        return True
 
     def check_input_text(self, event=None):
         api_key = self.setting_window.api_key_input_text_var.get()
@@ -176,7 +178,9 @@ class SettingWindowManager:
             event_bus.publish("ResetSetting")
 
     def on_confirm(self):
-        self.set_setting()
+        result = self.set_setting()
+        if not result:
+            return
         self.main_window.grab_release()
         self.main_window.withdraw()
 
