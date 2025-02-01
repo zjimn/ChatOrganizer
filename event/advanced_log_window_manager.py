@@ -1,6 +1,5 @@
 from event.event_bus import event_bus
 from util.config_manager import ConfigManager
-from util.load_manager import load_manager
 from util.logger import Logger, logger
 from util.window_util import center_window
 
@@ -66,7 +65,7 @@ class AdvancedLogWindowManager:
 
     def on_confirm(self):
         self.set_setting()
-        load_manager.save()
+        self.config_manager.save()
         self.main_window.grab_release()
         self.main_window.withdraw()
 
