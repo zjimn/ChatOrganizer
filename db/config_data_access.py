@@ -1,8 +1,11 @@
-import logging
 from datetime import datetime
 from typing import Optional, List
+
+from sqlalchemy.exc import SQLAlchemyError
+
 from db.database import Session
 from db.models import Config
+from util.logger import logger
 
 
 class ConfigDataAccess:
@@ -22,14 +25,14 @@ class ConfigDataAccess:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
 
     def get_config_value_by_key(self, key: str, default) -> Optional[Config]:
         try:
             config = self.session.query(Config).filter(Config.key == key, Config.delete_time.is_(None)).first()
             return config.value if config and config.value else default
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return None
 
     def get_all_configs(self) -> List[Config]:
@@ -37,7 +40,7 @@ class ConfigDataAccess:
             config_list = self.session.query(Config).filter(Config.delete_time.is_(None)).all()
             return config_list
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
             return []
 
     def upsert_config(self, key: str, value: str) -> None:
@@ -53,8 +56,7 @@ class ConfigDataAccess:
                     self.session.commit()
         except Exception as e:
             self.session.rollback()
-            logging.error(f"Failed to upsert configuration for key {key}: {e}")
-            raise e
+            logger.log('error', f"Failed to upsert configuration for key {key}: {e}")
 
     def delete_config(self, key: str) -> None:
         try:
@@ -66,4 +68,15 @@ class ConfigDataAccess:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            print(f"An error occurred: {e}")
+            logger.log('error', e)
+
+
+    def has_data(self) -> bool:
+        try:
+            exists = self.session.query(Config).filter(
+                Config.delete_time.is_(None)
+            ).first() is not None
+            return exists
+        except SQLAlchemyError as e:
+            logger.log('error', e)
+            return False
