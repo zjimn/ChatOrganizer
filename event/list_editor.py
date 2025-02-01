@@ -17,6 +17,8 @@ from ui.scrollable_frame import ScrollableFrame
 from util import image_util
 from util.image_viewer import ImageViewer
 from util.window_util import center_window
+from widget.confirm_dialog import ConfirmDialog
+from widget.custom_confirm_dialog import CustomConfirmDialog
 
 
 class ListEditor:
@@ -32,8 +34,6 @@ class ListEditor:
         self.edit_window = None
         self.item_data = None
         self.parent = main_window.root
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
         self.main_window = main_window
         self.list_tree = main_window.display_frame.tree
         self.content_service = ContentService()
@@ -110,10 +110,10 @@ class ListEditor:
             self.top.title("选择复制到的层级")
         self.top.geometry("300x300")
         self.top.grab_set()
-        center_window(self.top, 300, 300)
+        center_window(self.top,self.parent, 300, 300)
         editor_directory_tree = EditorDirectoryTree(self.top)
         self.tree = editor_directory_tree.tree
-        button_frame = tk.Frame(self.top)
+        button_frame = ttk.Frame(self.top)
         button_frame.pack(side=tk.BOTTOM, anchor='se', pady=10)
         cancel_button = tk.Button(button_frame, text="取消", width=6, command=self.close_and_clear_data)
         cancel_button.pack(side=tk.RIGHT, padx=5)
@@ -139,7 +139,7 @@ class ListEditor:
                                       lambda: self.content_service.copy_to_target_tree(content_ids, target_tree_id))
             self.close_and_clear_data()
         else:
-            messagebox.showwarning("警告", "请先选择一个层级。")
+            CustomConfirmDialog(parent = self.parent, title="警告", message="请先选择一个层级")
 
     def get_selected_list_content_ids_and_tree_id(self):
         selected_items = self.list_tree.selection()
@@ -236,7 +236,7 @@ class ListEditor:
         hidden_content_id_label = Label(self.description_frame, text=content_id,
                                         fg=self.description_frame.cget('bg'))
         hidden_content_id_label.pack_forget()
-        self.style.configure("Custom.DESCRIBE.INPUT", padding=(3, 3))
+        # self.style.configure("Custom.DESCRIBE.INPUT", padding=(3, 3))
         self.describe_input = tk.Text(self.description_frame, height=1, padx=5, pady=5)
         self.describe_input.pack(side=tk.TOP, fill=tk.X)
         self.describe_input.config(font=("Microsoft YaHei", 10))
@@ -276,7 +276,6 @@ class ListEditor:
             hidden_user_id_label.pack_forget()
             hidden_assistant_id_label = Label(content_frame, text=data[index + 1].id)
             hidden_assistant_id_label.pack_forget()
-            self.style.configure("Custom.DIALOGUE.USER.INPUT", padding=(3, 3))
             dialogue_user_input = Text(content_left_frame, width=30, height=1, padx=5, pady=5)
             dialogue_user_input.pack(side=tk.TOP, fill=tk.X)
             dialogue_user_input.config(font=("Microsoft YaHei", 10))
@@ -298,7 +297,6 @@ class ListEditor:
                 image_label.pack(side=LEFT, pady=5, fill=tk.BOTH)
                 self.dialogue_image_labels.append(image_label)
                 image_viewer = ImageViewer(self.parent)
-                print(f"img_path before {img_path}")
                 image_label.bind("<Double-Button-1>",
                                  lambda e, image_path=img_path: image_viewer.on_image_double_click(e, image_path,
                                                                                                    self.parent))
@@ -329,12 +327,8 @@ class ListEditor:
             select_item_button.config(state=tk.DISABLED)
 
     def keep_only(self, frame_to_keep, select_item_button):
-        response = messagebox.askyesno(
-            "Confirm",
-            "确定需要保留该项删除其他项?",
-            parent=self.edit_window
-        )
-        if response:
+        dialog = ConfirmDialog(parent=self.edit_window, title="确认", message="确定需要保留该项删除其他项?")
+        if dialog.result:
             for frame in self.dialogue_frames:
                 if frame != frame_to_keep:
                     frame.pack_forget()
@@ -343,8 +337,8 @@ class ListEditor:
 
     def remove_selected_item(self):
         selected_items = self.list_tree.selection()
-        result = messagebox.askyesno("删除数据", "确定需要删除所选数据吗?")
-        if result:
+        dialog = ConfirmDialog(parent=self.parent, title="删除数据", message="确定需要删除所选数据吗?")
+        if dialog.result:
             with ContentDataAccess() as cda:
                 for item in selected_items:
                     values = self.list_tree.item(item, 'values')
