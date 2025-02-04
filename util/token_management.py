@@ -1,4 +1,3 @@
-from config.constant import PREFERENCE_PROPERTIES_FILE
 from util.logger import Logger, logger
 
 
@@ -18,7 +17,7 @@ class TokenManager:
 
     def manage_txt_history(self):
         total_tokens = sum(self.estimate_token_count(message['content']) for message in self.conversation_txt_history)
-        logger.log('info', f'请求总字符数: {total_tokens}')
+        logger.log('debug', f'request total char count: {total_tokens}')
         while total_tokens > self.token_limit != 0:
             if self.conversation_txt_history:
                 removed_message = self.conversation_txt_history.pop(0)
@@ -70,7 +69,6 @@ class TokenManager:
         self.conversation_img_history = []
 
     def manage_img_history(self):
-        total_tokens = self.estimate_token_count(self.conversation_img_history)
         total_tokens = sum(self.estimate_token_count(message) for message in self.conversation_img_history)
         while total_tokens > self.token_limit:
             if self.conversation_img_history:
