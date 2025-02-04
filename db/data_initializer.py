@@ -1,17 +1,22 @@
-from db.config_data_access import ConfigDataAccess
+from config.constant import OLLAMA_SERVER_NAME, OLLAMA_SERVER_KEY, \
+    OPENAI_SERVER_KEY, OPENAI_SERVER_NAME, OLLAMA_DEFAULT_URL, DEEPSEEK_SERVER_KEY, DEEPSEEK_SERVER_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 from db.dialogue_model_access import DialogueModelAccess
 from db.dialogue_preset_access import DialoguePresetAccess
 from db.dialogue_preset_detail_access import DialoguePresetDetailAccess
+from db.model_server_access import ModelServerAccess
+from db.model_server_detail_access import ModelServerDetailAccess
 from util.config_manager import ConfigManager
 from util.logger import logger
 
 
 class DataInitializer:
     def __init__(self):
-        self.default_text_model_id = None
+        self.default_txt_model_id = None
         self.default_img_model_id = None
         self.chda = ContentHierarchyDataAccess()
+        self.msa = ModelServerAccess()
+        self.msda = ModelServerDetailAccess()
         self.dma = DialogueModelAccess()
         self.dpa = DialoguePresetAccess()
         self.dpda = DialoguePresetDetailAccess()
@@ -29,36 +34,61 @@ class DataInitializer:
         except Exception as e:
             logger.log('error', f"insert default content hierarchy data error: {e}")
 
-    def insert_default_config(self):
+    def insert_default_data(self):
+        self.insert_dialog_model_data()
+        self.insert_model_server_data()
+        self.insert_model_server_detail_data()
+
+    def insert_dialog_model_data(self):
         try:
-            if self.default_text_model_id:
-                self.config_manager.set("text_model_id", self.default_text_model_id)
-                self.config_manager.set("text_model_name", "GPT-3.5-turbo")
+            if self.default_txt_model_id:
+                self.config_manager.set("txt_model_id", self.default_txt_model_id)
+                self.config_manager.set("txt_model_name", "GPT-3.5-turbo")
             if self.default_img_model_id:
                 self.config_manager.set("img_model_id", self.default_img_model_id)
                 self.config_manager.set("img_model_name", "dall-e-3")
-            logger.log('info', "insert default config data")
+            self.config_manager.set("model_server", OPENAI_SERVER_KEY)
         except Exception as e:
             logger.log('error', f"insert default config data error: {e}")
+
+    def insert_model_server_data(self):
+        try:
+            exists = self.msa.has_data()
+            if not exists:
+                self.msa.insert(DEEPSEEK_SERVER_KEY, DEEPSEEK_SERVER_NAME)
+                self.msa.insert(OLLAMA_SERVER_KEY, OLLAMA_SERVER_NAME)
+                self.msa.insert(OPENAI_SERVER_KEY, OPENAI_SERVER_NAME)
+        except Exception as e:
+            logger.log('error', f"insert default model server data error: {e}")
+
+
+    def insert_model_server_detail_data(self):
+        try:
+            exists = self.msda.has_data()
+            if not exists:
+                self.msda.upsert(OLLAMA_SERVER_KEY, api_url=OLLAMA_DEFAULT_URL)
+                self.msda.upsert(OPENAI_SERVER_KEY, txt_model_id=self.default_txt_model_id, img_model_id=self.default_img_model_id)
+        except Exception as e:
+            logger.log('error', f"insert default model server data error: {e}")
 
     def insert_default_model(self):
         try:
             with self.dma as dma:
                 exist = dma.has_data()
                 if not exist:
-                    dma.insert_data("GPT-4o-2024-08-06", "text")
-                    dma.insert_data("GPT-4o", "text")
-                    dma.insert_data("o1-mini", "text")
-                    dma.insert_data("o1-preview", "text")
-                    dma.insert_data("GPT-4-turbo", "text")
-                    dma.insert_data("Claude-3.5-Sonnet", "text")
-                    dma.insert_data("GPT-4o-mini", "text")
-                    self.default_text_model_id = dma.insert_data("GPT-3.5-turbo", "text")
-                    dma.insert_data("GPT-3.5-turbo-instruct", "text")
-                    dma.insert_data("LLama-3.1-405b", "text")
-                    dma.insert_data("LLama-3.1-70b", "text")
-                    dma.insert_data("LLama-3-70b", "text")
-                    self.default_img_model_id = dma.insert_data("dall-e-3", "img")
+                    dma.insert_data("GPT-4o-2024-08-06", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("GPT-4o", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("o1-mini", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("o1-preview", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("GPT-4-turbo", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("Claude-3.5-Sonnet", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("GPT-4o-mini", "txt", OPENAI_SERVER_KEY)
+                    self.default_txt_model_id = dma.insert_data("GPT-3.5-turbo", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("GPT-3.5-turbo-instruct", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("LLama-3.1-405b", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("LLama-3.1-70b", "txt", OPENAI_SERVER_KEY)
+                    dma.insert_data("LLama-3-70b", "txt", OPENAI_SERVER_KEY)
+                    self.default_img_model_id = dma.insert_data("dall-e-3", "img", OPENAI_SERVER_KEY)
                     logger.log('info', "insert default dialogue model data")
                 else:
                     pass
@@ -68,7 +98,7 @@ class DataInitializer:
     def initialize(self):
         self.insert_default_content_hierarchy()
         self.insert_default_model()
-        self.insert_default_config()
+        self.insert_default_data()
         self.insert_default_preset()
 
     def insert_default_preset(self):
