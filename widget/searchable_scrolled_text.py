@@ -1,8 +1,8 @@
 import tkinter as tk
-from tkinter import scrolledtext, simpledialog, messagebox, ttk
+from tkinter import scrolledtext, ttk
 
 from event.event_bus import event_bus
-from util.undo_redo_entry import UndoRedoEntry
+from widget.undo_redo_entry import UndoRedoEntry
 
 
 class SearchableScrolledText(ttk.Frame):
