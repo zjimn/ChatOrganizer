@@ -16,10 +16,11 @@ class DialogueModelAccess:
     def __exit__(self, exc_type, exc_value, traceback):
         self.session.close()
 
-    def insert_data(self, name: str, type:str) -> int | None:
+    def insert_data(self, name: str, type:str, server_key) -> int | None:
         new_data = DialogueModel(
             name=name,
             type=type,
+            server_key=server_key
         )
         try:
             self.session.add(new_data)
@@ -52,9 +53,9 @@ class DialogueModelAccess:
             logger.log('error', e)
             return None
 
-    def get_all_data(self, type) -> list:
+    def get_all_data(self, type, server_key) -> list:
         try:
-            data_list = self.session.query(DialogueModel).filter(DialogueModel.type == type, DialogueModel.delete_time.is_(None)).all()
+            data_list = self.session.query(DialogueModel).filter(DialogueModel.type == type, DialogueModel.server_key == server_key,  DialogueModel.delete_time.is_(None)).all()
             return data_list
         except Exception as e:
             logger.log('error', e)
