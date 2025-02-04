@@ -1,7 +1,7 @@
 import tkinter as tk
-from tkinter import scrolledtext, ttk
+from tkinter import ttk
 
-from util.searchable_scrolled_text import SearchableScrolledText
+from widget.searchable_scrolled_text import SearchableScrolledText
 
 
 class OutputWindow:
