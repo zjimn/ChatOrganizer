@@ -1,10 +1,12 @@
-from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY
+from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, TYPE_OPTION_IMG_KEY, TXT_MODEL_TYPE, \
+    IMG_MODEL_TYPE
 from event.event_bus import event_bus
 from event.model_viewer_manager import ModelViewerManager
 from event.preset_viewer_manager import PresetViewerManager
-from service.DialogModelService import DialogueModelService
-from service.DialogPresetService import DialoguePresetService
-from service.TreeService import TreeService
+from service.dialog_model_service import DialogueModelService
+from service.dialog_preset_service import DialoguePresetService
+from service.model_server_detail_service import ModelServerDetailService
+from service.tree_service import TreeService
 from ui.model_viewer import ModelViewer
 from ui.preset_viewer import PresetViewer
 from util.config_manager import ConfigManager
@@ -12,6 +14,7 @@ from util.config_manager import ConfigManager
 
 class TopBarManager:
     def __init__(self, main_window):
+        self.model_server_key = None
         self.model_type = None
         self.dialog_model_data = None
         self.selected_tree_id = None
@@ -39,6 +42,7 @@ class TopBarManager:
         self.tree_service = TreeService()
         self.dialogue_preset_service = DialoguePresetService()
         self.dialogue_model_service = DialogueModelService()
+        self.model_server_detail_service = ModelServerDetailService()
         self.set_model_type()
         self.load_data()
 
@@ -47,10 +51,12 @@ class TopBarManager:
         self.reload_dialog_preset()
 
     def set_model_type(self):
-        model_type = "text"
+        model_server_key = self.config_manager.get("model_server_key")
+        model_type = TXT_MODEL_TYPE
         if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
-            model_type = "img"
+            model_type = IMG_MODEL_TYPE
         self.model_type = model_type
+        self.model_server_key = model_server_key
 
 
     def on_click_preset_manage_button(self):
@@ -79,12 +85,15 @@ class TopBarManager:
         if data:
             model_id = data.id
             model_name = data.name
-            if self.model_type == "text":
-                self.config_manager.set("text_model_id", model_id)
-                self.config_manager.set("text_model_name", model_name)
+            model_server_key = self.config_manager.get("model_server_key")
+            if self.model_type == "txt":
+                self.config_manager.set("txt_model_id", model_id)
+                self.config_manager.set("txt_model_name", model_name)
+                self.model_server_detail_service.update_or_insert_data(model_server_key, txt_model_id= model_id)
             else:
                 self.config_manager.set("img_model_id", model_id)
                 self.config_manager.set("img_model_name", model_name)
+                self.model_server_detail_service.update_or_insert_data(model_server_key, img_model_id= model_id)
             event_bus.publish("DialogModelChanged", model_name = model_name)
 
     def reload_dialog_preset(self, id = None):
@@ -122,17 +131,22 @@ class TopBarManager:
 
     def reload_dialog_model(self, type = None):
         self.set_model_type()
-        data = self.dialogue_model_service.get_all_dialog_model_list(self.model_type)
+        data = self.dialogue_model_service.get_all_dialog_model_list(self.model_type, self.model_server_key)
         self.dialog_model_data = data
         self.reload_model_combobox()
 
+    def model_server_change(self):
+        self.reload_dialog_model()
+
     def reload_model_combobox(self):
         model_index = None
+        data = self.model_server_detail_service.get_data_by_server_key(self.model_server_key)
         model_id = None
-        if self.model_type == "text":
-            model_id = self.config_manager.get("text_model_id")
-        else:
-            model_id = self.config_manager.get("img_model_id")
+        if data:
+            if self.model_type == TXT_MODEL_TYPE:
+                model_id = data.txt_model_id
+            else:
+                model_id = data.img_model_id
         for index, item in enumerate(self.dialog_model_data):
             if model_id and item.id == model_id:
                 model_index = index
@@ -145,6 +159,10 @@ class TopBarManager:
         if self.model_options and model_index is not None:
             model_name= self.model_options[model_index]
             self.model_var.set(model_name)
+            if self.model_type == "txt":
+                self.config_manager.set("txt_model_name", model_name)
+            if self.model_type == "img":
+                self.config_manager.set("img_model_name", model_name)
             event_bus.publish("DialogModelChanged", model_name=model_name)
         if len(self.model_options) > 0:
             max_width = min(50, max(10, max(len(option) for option in self.model_options)))
@@ -160,6 +178,7 @@ class TopBarManager:
         self.model_combobox.bind("<<ComboboxSelected>>", self.on_model_combobox_select)
         event_bus.subscribe("DialogPresetUpdated", self.reload_dialog_preset)
         event_bus.subscribe("DialogModelUpdated", self.reload_dialog_model)
+        event_bus.subscribe("ModelServerChange", self.model_server_change)
         event_bus.subscribe("ReloadDialogModel", self.reload_dialog_model)
         event_bus.subscribe("ChangeTypeUpdateList", self.reload_dialog_model)
         event_bus.subscribe('TreeItemPress', self.reload_preset_combobox)
