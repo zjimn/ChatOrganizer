@@ -4,7 +4,7 @@ from typing import Optional
 from config.constant import LAST_SELECTED_TREE_ID_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 from event.event_bus import event_bus
-from service.TreeService import TreeService
+from service.tree_service import TreeService
 from util.config_manager import ConfigManager
 from util.logger import logger
 from widget.confirm_dialog import ConfirmDialog
