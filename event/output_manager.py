@@ -4,22 +4,27 @@ import tkinter as tk
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from tkinter import font as tkfont, filedialog
+from tkinter import font as tkfont, filedialog, messagebox
 import requests
 from PIL import Image, ImageTk
-from api.openai_image_api import OpenaiImageApi
-from api.openai_text_api import OpenaiTextApi
+
 from config import constant
 from config.constant import LAST_TYPE_OPTION_KEY_NAME, ASSISTANT_NAME, TYPE_OPTION_TXT_KEY, \
-    TYPE_OPTION_IMG_KEY, PREFERENCE_PROPERTIES_FILE
+    TYPE_OPTION_IMG_KEY
 from db.models import Dialogue
 from event.event_bus import event_bus
+from exception.chat_request_error import ChatRequestError
+from exception.chat_request_warn import ChatRequestWarn
+from widget.loading_spinner import LoadingSpinner
+from util.cancel_manager import CancelManager
+from util.chat_factory import ChatFactory
 from util.config_manager import ConfigManager
 from util.logger import logger
 from service.content_service import ContentService
 from util.image_viewer import ImageViewer
 from util.image_util import full_cover_resize
 from util.text_inserter import TextInserter
+from widget.custom_confirm_dialog import CustomConfirmDialog
 
 
 class OutputManager:
@@ -38,13 +43,14 @@ class OutputManager:
         self.dialog_images = []
         self.sys_messages = []
         self.set_output_window_pos()
-        self.img_generator = OpenaiImageApi()
-        self.txt_generator = OpenaiTextApi()
+        # self.img_generator = OpenaiImageApi()
+        self.chat_factory = ChatFactory()
         self.content_service = ContentService()
         self.selected_tree_id = None
         self.bind_events()
         self.text_inserter = TextInserter(self.root, self.main_window.output_window.output_text)
         self.reload_model()
+        self.loading_spinner = LoadingSpinner(main_window.output_window.output_window)
 
     def reload_model(self):
         event_bus.publish("ReloadDialogModel")
@@ -110,6 +116,7 @@ class OutputManager:
         return Image.open(image_data)
 
     def submit_prompt(self):
+        self.loading_spinner.start()
         prompt = self.main_window.input_frame.input_text.get('1.0', 'end-1c').strip()
         option = self.main_window.input_frame.option_var.get()
         selected_size = self.main_window.input_frame.size_var.get()
@@ -133,13 +140,26 @@ class OutputManager:
             self.main_window.output_window.output_text.yview(tk.END)
         self.main_window.input_frame.frame.event_generate('<<RequestOpenaiBegin>>')
         if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
-            image_data = self.img_generator.create_image_from_text(prompt, selected_size)
+            model_server = self.chat_factory.create_model_server()
+            image_data = None
+            try:
+                image_data = model_server.create_image_from_text(prompt, selected_size)
+            except ChatRequestError as cre:
+                CustomConfirmDialog(parent=self.main_window.root, title="错误", message=cre)
+            except ChatRequestWarn as crw:
+                CustomConfirmDialog(parent=self.main_window.root, title="警告", message=crw)
+            except NotImplementedError as nie:
+                CustomConfirmDialog(parent=self.main_window.root, title="错误", message=nie)
+            except Exception as e:
+                logger.log('error', e)
+                messagebox.showerror("错误", f"请求异常:\n{e}")
             if image_data is None:
                 self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
+                self.loading_spinner.stop()
                 return
             url = image_data[0]
             filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png")
-            file_path = Path(self.config_manager.get("image_dir_path")) / filename
+            file_path = Path(self.config_manager.get("img_folder")) / filename
             img = self.download_img(url)
             img.save(file_path)
             dialogue_data = Dialogue(
@@ -147,11 +167,25 @@ class OutputManager:
                 img_path=file_path
             )
             self.set_dialog_images([dialogue_data], True, True)
+            self.loading_spinner.stop()
             self.session_id = self.content_service.save_img_record(self.session_id, self.selected_tree_id, prompt,
                                                                    str(file_path))
         else:
             self.set_output_text_default_background()
-            answer = self.txt_generator.generate_gpt_completion(prompt, self.sys_messages)
+            answer = None
+            model_server = self.chat_factory.create_model_server()
+            try:
+                answer = model_server.generate_gpt_completion(prompt, self.sys_messages)
+            except ChatRequestError as cre:
+                CustomConfirmDialog(parent=self.main_window.root, title="错误", message=cre)
+            except ChatRequestWarn as crw:
+                CustomConfirmDialog(parent=self.main_window.root, title="警告", message=crw)
+            except NotImplementedError as nie:
+                CustomConfirmDialog(parent=self.main_window.root, title="错误", message=nie)
+            except Exception as e:
+                logger.log('error', e)
+                messagebox.showerror("错误", f"请求异常:\n{e}")
+            self.loading_spinner.stop()
             if answer is None:
                 self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
                 return
@@ -318,9 +352,9 @@ class OutputManager:
     def close_output_window(self):
         self.main_window.output_window.output_window.withdraw()
         self.session_id = None
-        self.txt_generator.cancel_request()
-        self.img_generator.cancel_request()
-        self.txt_generator.clear_history()
+        model_server = self.chat_factory.create_model_server()
+        CancelManager.remove_all_running()
+        model_server.clear_history()
         event_bus.publish('CloseOutputWindow')
         self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
 
@@ -356,9 +390,10 @@ class OutputManager:
             self.session_id = values[0]
             self.set_output_text_default_background()
             data = self.content_service.load_txt_dialogs(self.session_id)
-            self.txt_generator.clear_history()
+            model_server = self.chat_factory.create_model_server()
+            model_server.clear_history()
             for item in data:
-                self.txt_generator.add_history_message(item.role, item.message)
+                model_server.add_history_message(item.role, item.message)
             self.show_text(main_window, data)
         else:
             self.session_id = values[1]
@@ -367,23 +402,28 @@ class OutputManager:
         event_bus.publish("OpenChatDetail")
 
     def thread_submit(self, event=None):
-        threading.Thread(target=lambda: self.submit_prompt()).start()
+        self.cancel_request()
+        self.loading_spinner.stop()
+        thread = threading.Thread(target=lambda: self.submit_prompt())
+        thread.start()
+        thread_id = thread.ident
+        CancelManager.add_running(thread_id)
         event_bus.publish("OpenChatDetail")
 
-    def cancel_request(self, event):
-        if self.txt_generator:
-            self.txt_generator.cancel_request()
-        if self.img_generator:
-            self.img_generator.cancel_request()
+    def cancel_request(self, event = None):
+        CancelManager.remove_all_running()
+        self.loading_spinner.stop()
 
     def update_sys_messages(self, preset_id, sys_messages):
         self.sys_messages = sys_messages
 
     def on_dialog_model_changed(self, model_name):
-        self.txt_generator.reload_model(model_name)
+        model_server = self.chat_factory.create_model_server()
+        model_server.reload_model(model_name)
 
     def on_dialog_setting_changed(self):
-        self.txt_generator.reload_config()
+        model_server = self.chat_factory.create_model_server()
+        model_server.reload_config()
 
     def bind_tree_events(self):
         self.main_window.display_frame.tree.bind("<Double-1>",
