@@ -3,15 +3,13 @@ from tkinter import font, ttk, messagebox
 import tkinter as tk
 
 from config.constant import TOGGLE_BUTTON_CHECK_IMAGE_PATH, TOGGLE_BUTTON_UNCHECK_IMAGE_PATH
-from db.dialogue_preset_detail_access import DialoguePresetDetailAccess
 from db.models import DialoguePresetDetail
 from event.event_bus import event_bus
-from service.DialogPresetService import DialoguePresetService
+from service.dialog_preset_service import DialoguePresetService
 from util.logger import logger
-from util.undo_redo_entry import UndoRedoEntry
+from widget.undo_redo_entry import UndoRedoEntry
 from util.window_util import center_window, right_window
 from widget.confirm_dialog import ConfirmDialog
-from widget.custom_confirm_dialog import CustomConfirmDialog
 from widget.custom_slider import CustomSlider
 from widget.icon_toggle_button import IconToggleButton
 
@@ -179,7 +177,7 @@ class PresetViewerManager:
         main_frame.pack(side='left', padx=(5, 5), pady=(0, 0), fill=tk.BOTH, expand=True)
         items = [top_frame, detail_label_frame, add_frame]
         items_height = self.get_items_height(items)
-        add_button.config(command= lambda window = self.detail_window, parent = input_body_frame: self.add_item(window, items_height, input_body_frame))
+        add_button.config(command= lambda window = self.detail_window, parent = input_body_frame, add_fr = add_frame: self.add_item(window, items_height, input_body_frame, add_fr))
         save_button.config(command= lambda window = self.detail_window, il = hidden_preset_id_label, tl = title_name_text, dl = input_body_frame: self.save_preset_detail(window, il, tl, dl))
         self.load_detail(detail, self.detail_window, items_height, input_body_frame)
         self.display_max_history_slider(self.max_history_toggle_button.get_state(), max_history_count)
@@ -202,7 +200,7 @@ class PresetViewerManager:
 
     def load_detail(self, detail, window, items_height, input_body_frame):
         for item in detail:
-            self.add_item(window, items_height, input_body_frame, item.id, item.value, True)
+            self.add_item(window, items_height, input_body_frame, None, item.id, item.value, True)
         self.parent.update()
         self.adjust_window_height_based_on_elements(window, items_height, input_body_frame)
 
@@ -246,7 +244,10 @@ class PresetViewerManager:
         total_height = parent.winfo_height()
         self.adjust_window_height_based_on_elements(window, items_height, parent)
 
-    def add_item(self, window, items_height, parent, data_id = None, text = "", adjust_height = True):
+        if len([child for child in parent.winfo_children() if child.winfo_ismapped()]) == 0:
+            parent.pack_forget()
+
+    def add_item(self, window, items_height, parent, add_fr, data_id = None, text = "", adjust_height = True):
         input_frame = ttk.Frame(parent)
         input_frame.pack(side = tk.TOP, fill=tk.X, padx=(0, 0), pady=(5, 5))
 
@@ -263,12 +264,17 @@ class PresetViewerManager:
         if adjust_height:
             self.adjust_window_height_based_on_elements(window, items_height, parent)
 
+        if add_fr:
+            parent.pack(side=tk.TOP, fill=tk.X, padx=(0, 0), pady=(0, 10))
+            add_fr.pack_forget()
+            add_fr.pack(side=tk.TOP, fill=tk.X, padx=(0, 0), pady=5)
+
     def adjust_window_height_based_on_elements(self, window,items_height, input_body_frame):
         total_height = items_height
         total_height += input_body_frame.winfo_height()
         current_width = window.winfo_width()
         height = input_body_frame.winfo_height()
-        window.geometry(f"{current_width}x{total_height+200}")
+        window.geometry(f"{current_width}x{total_height+220}")
 
     def get_items_height(self, items):
         total_height = 0
