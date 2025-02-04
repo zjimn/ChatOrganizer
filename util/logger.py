@@ -41,9 +41,6 @@ class Logger:
 
         if self.enable_log:
             self._setup_logging()
-            self.log('info', "Logging is enabled.")
-        else:
-            self.log('info', "Logging is disabled.")
 
     def _setup_logging(self):
         if self.show_debug:
