@@ -41,12 +41,22 @@ class ContentHierarchy(Base):
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)
 
-
-class Config(Base):
-    __tablename__ = 'config'
+class ModelServer(Base):
+    __tablename__ = 'model_server'
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String(255), nullable=False)
-    value = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False)
+    create_time = Column(DateTime, default=datetime.now)
+    delete_time = Column(DateTime, nullable=True, default=None)
+
+class ModelServerDetail(Base):
+    __tablename__ = 'model_server_detail'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    server_key = Column(String(255))
+    txt_model_id = Column(Integer, nullable=True)
+    img_model_id = Column(Integer, nullable=True)
+    api_key = Column(String(255), nullable=True)
+    api_url = Column(String(255), nullable=True)
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)
 
@@ -73,5 +83,6 @@ class DialogueModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
     type = Column(String, nullable=False)
+    server_key = Column(String, nullable=False)
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)
