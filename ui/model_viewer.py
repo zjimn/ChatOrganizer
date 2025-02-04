@@ -1,13 +1,9 @@
-import os
-from tkinter import ttk, filedialog
+from tkinter import ttk
 
 import tkinter as tk
 from ttkbootstrap import Style
 
-from db.models import DialoguePresetDetail
-from util.undo_redo_entry import UndoRedoEntry
 from util.window_util import center_window
-from widget.custom_listbox import CustomListbox
 
 
 class ModelViewer:
@@ -28,7 +24,8 @@ class ModelViewer:
         self.top_frame = ttk.Frame(main_frame, borderwidth=0, relief=tk.RAISED)
         hidden_model_id_label = ttk.Label(self.top_frame, text="", font=("Microsoft YaHei UI", 10))
         hidden_model_id_label.pack_forget()
-
+        detail_label = ttk.Label(self.top_frame, text="(选择添加模型服务对应的模型)", font=("Microsoft YaHei UI", 10))
+        detail_label.pack(side=tk.LEFT, padx=(10, 10), pady=5)
 
         self.save_button = ttk.Button(self.top_frame, text="保存", state=tk.NORMAL)
 
