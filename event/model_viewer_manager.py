@@ -2,12 +2,13 @@ from datetime import datetime
 from tkinter import font, ttk
 import tkinter as tk
 
-from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY, TYPE_OPTION_TXT_KEY
+from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_IMG_KEY, TYPE_OPTION_TXT_KEY, TXT_MODEL_TYPE, \
+    IMG_MODEL_TYPE
 from db.models import DialogueModel
 from event.event_bus import event_bus
-from service.DialogModelService import DialogueModelService
+from service.dialog_model_service import DialogueModelService
 from util.config_manager import ConfigManager
-from util.undo_redo_entry import UndoRedoEntry
+from widget.undo_redo_entry import UndoRedoEntry
 from util.window_util import center_window
 
 
@@ -43,18 +44,26 @@ class ModelViewerManager:
         self.display_detail()
 
     def set_model_type(self):
-        model_type = "text"
+        model_type = TXT_MODEL_TYPE
         if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
-            model_type = "img"
+            model_type = IMG_MODEL_TYPE
         self.model_type = model_type
 
     def on_add(self):
         self.display_detail()
 
     def display_detail(self):
+        items = [self.model_viewer.top_frame, self.model_viewer.detail_label_frame, self.model_viewer.add_frame]
+        items_height = self.get_items_height(items)
+        for item in self.model_viewer.input_body_frame.winfo_children():
+            self.delete_item(items_height, self.model_viewer.input_body_frame, item)
         for item in self.model_viewer.input_body_frame.winfo_children():
             item.destroy()
-        detail = self.dialogue_model_service.get_all_dialog_model_list(self.model_type)
+        model_server_key = self.config_manager.get("model_server_key")
+        detail = self.dialogue_model_service.get_all_dialog_model_list(self.model_type, model_server_key)
+        if len(detail) == 0:
+            dgm = DialogueModel()
+            detail =[dgm]
         items = [self.model_viewer.top_frame, self.model_viewer.detail_label_frame, self.model_viewer.add_frame]
         self.parent.update()
         items_height = self.get_items_height(items)
@@ -71,6 +80,7 @@ class ModelViewerManager:
 
     def save_model_detail(self, detail_label):
         detail_list = []
+
         for widget in detail_label.winfo_children():
             if not widget:
                 continue
@@ -85,17 +95,20 @@ class ModelViewerManager:
             dm.name = name
             dm.delete_time = delete_time
             detail_list.append(dm)
-        self.dialogue_model_service.update_or_insert_data(detail_list, self.model_type)
+        model_server_key = self.config_manager.get("model_server_key")
+        self.dialogue_model_service.update_or_insert_data(detail_list, self.model_type, model_server_key)
         event_bus.publish("DialogModelUpdated")
         self.model_viewer.main_window.withdraw()
 
     def delete_item(self, items_height, parent, item):
         item.pack_forget()
         item.update()
-        total_height = parent.winfo_height()
         self.adjust_window_height_based_on_elements(items_height)
+        if len([child for child in self.model_viewer.input_body_frame.winfo_children() if child.winfo_ismapped()]) == 0:
+            self.model_viewer.input_body_frame.pack_forget()
 
     def add_item(self, items_height, parent, data_id = None, text = "", adjust_height = True):
+
         input_frame = ttk.Frame(parent)
         input_frame.pack(side = tk.TOP, fill=tk.X, padx=(0, 0), pady=(5, 5))
 
@@ -108,9 +121,12 @@ class ModelViewerManager:
         input_text.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=(0, 0), expand = True)
         input_frame.data_id = data_id
         input_frame.data_name = input_text
-        parent.update()
+        # parent.update()
         if adjust_height:
             self.adjust_window_height_based_on_elements(items_height)
+        self.model_viewer.input_body_frame.pack(side=tk.TOP, fill=tk.X, padx=(0, 0), pady=(0, 10))
+        self.model_viewer.add_frame.pack_forget()
+        self.model_viewer.add_frame.pack(side=tk.TOP, fill=tk.X, padx=(0, 0), pady=5)
 
     def adjust_window_height_based_on_elements(self, items_height):
         total_height = items_height
