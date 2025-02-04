@@ -4,7 +4,8 @@ import json
 import os
 from tkinter import messagebox
 
-from config.constant import APP_NAME, IMAGE_DIR_PATH
+from config.constant import APP_NAME, LOG_FOLDER, IMG_FOLDER
+from util.file_util import get_documents_directory
 from util.global_variables import GlobalVariables
 
 
@@ -23,8 +24,7 @@ class ConfigManager:
         self.config_path = Path(os.getenv("APPDATA")) / app_name / config_filename
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self.config = self._load_config()
-        GlobalVariables.set_variables(self.config)
-        _init_default()
+        self._init_default()
         self.__initialized = True
 
     def _load_config(self):
@@ -38,17 +38,17 @@ class ConfigManager:
         return {}
 
     def get(self, key, default=None):
-        return GlobalVariables.get(key, default)
+        return self.config.get(key, default)
 
     def set(self, key, value):
-        GlobalVariables.set(key, value)
+        self.config[key] = value
 
     def save(self):
         previous_config = self._load_config()  # fetch the current saved config
         success = True
         with self.config_path.open("w", encoding="utf-8") as file:
             try:
-                json.dump(GlobalVariables.get_variables(), file, ensure_ascii=False, indent=4)
+                json.dump(self.config, file, ensure_ascii=False, indent=4)
             except Exception as e:
                 success = False
                 messagebox.showerror("错误", f"配置文件保存失败: {e}")
@@ -62,8 +62,12 @@ class ConfigManager:
                     messagebox.showerror("错误", f"恢复配置文件失败: {e}")
                     print(f"Error: save file error{e}")
 
-def _init_default():
-    image_dir_path =  GlobalVariables.get("image_dir_path", IMAGE_DIR_PATH)
-    GlobalVariables.set("image_dir_path", image_dir_path)
-    image_dir_path =  GlobalVariables.get("image_dir_path", IMAGE_DIR_PATH)
-    GlobalVariables.set("image_dir_path", image_dir_path)
+    def _init_default(self):
+        default_log_folder = Path(get_documents_directory()) / APP_NAME / LOG_FOLDER
+        default_img_folder = Path(get_documents_directory()) / APP_NAME / IMG_FOLDER
+        default_log_folder = os.path.normpath(default_log_folder)
+        default_img_folder = os.path.normpath(default_img_folder)
+        log_folder =  self.get("log_folder", default_log_folder)
+        self.config["log_folder"] = log_folder
+        img_folder = self.get("img_folder", default_img_folder)
+        self.config["img_folder"] = img_folder
