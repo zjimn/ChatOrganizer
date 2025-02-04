@@ -29,10 +29,6 @@ class DialoguePresetService:
                     data.preset_id = id
                     return dpda.insert_by_object(data)
 
-
-
-
-
     def update_data(self, id, name, max_history_count, detail):
         if not id:
             return
