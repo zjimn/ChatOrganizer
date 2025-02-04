@@ -1,10 +1,7 @@
-import textwrap
 import tkinter as tk
 from tkinter import ttk
 
-from PIL.ImageOps import expand
-
-from util.undo_redo_entry import UndoRedoEntry
+from widget.undo_redo_entry import UndoRedoEntry
 from util.window_util import center_window  # 假设这个函数是你定义的
 
 class InputDialog:

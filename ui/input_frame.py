@@ -1,14 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 
-from util.undo_redo_text import UndoRedoText
+from widget.undo_redo_text import UndoRedoText
 
 
 class InputFrame:
     def __init__(self, parent):
         self.parent = parent
-        # self.style = ttk.Style()
-        # self.style.configure("Custom.TEntry", padding=(3, 5))
         self.size_options = ["1024x1024", "1792x1024", "1024x1792"]
         self.type_options = ["文字", "图片"]
         self.submit_button_initial_text = "获取回答"
@@ -30,3 +28,4 @@ class InputFrame:
         self.new_chat_button = ttk.Button(self.frame, text="新的对话", state=tk.NORMAL)
         self.new_chat_button.pack(side=tk.RIGHT, padx=(0, 10), anchor=tk.S)
         self.size_menu.pack_forget()
+
