@@ -1,8 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
 
-from util.undo_redo_text import UndoRedoText
-
 
 class TopBar:
     def __init__(self, parent):
