@@ -2,7 +2,6 @@ import tkinter as tk
 
 from db.data_initializer import DataInitializer
 from db.database import init_db
-from db.init_folder import init_folder
 from event.advanced_log_window_manager import AdvancedLogWindowManager
 from event.input_manager import InputManager
 from event.list_manager import ListManager
@@ -16,7 +15,6 @@ from util.window_util import center_window
 
 
 def initialize_application():
-    init_folder()
     init_db()
     data_initializer = DataInitializer()
     data_initializer.initialize()
