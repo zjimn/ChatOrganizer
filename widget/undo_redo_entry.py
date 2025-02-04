@@ -3,13 +3,18 @@ import tkinter as tk
 from tkinter import ttk
 
 class UndoRedoEntry(ttk.Entry):
-    def __init__(self, master=None, **kwargs):
+    def __init__(self, master=None, placeholder="", **kwargs):
         super().__init__(master, **kwargs)
         self.history = [""]
         self.history_index = 0
         self.bind("<Control-z>", self.safe_undo)  # Ctrl+Z 撤销
         self.bind("<Control-Shift-Z>", self.safe_redo)  # Ctrl+Y 重做
         self.bind("<Key>", self.record_change)  # 记录每次输入
+        self.placeholder = placeholder
+        # self.bind("<FocusIn>", self.on_focus)
+        self.bind("<FocusOut>", self.on_focus_out)
+        self.insert(0, self.placeholder)
+        # self.config(foreground='lightgrey')  # 浅色提示文字
 
     def record_change(self, event=None):
         # 获取当前文本内容
@@ -37,6 +42,24 @@ class UndoRedoEntry(ttk.Entry):
     def set_text(self, text):
         self.delete(0, tk.END)
         self.insert(0, text)
+
+    # def on_focus(self, event):
+    #     if self.get() == self.placeholder:
+    #         #self.delete(0, tk.END)  # 清除提示文字
+    #         # self.config(foreground='black')  # 设置为黑色字体
+
+    def on_focus_out(self, event):
+        if self.get() == "":
+            self.insert(0, self.placeholder)  # 恢复提示文字
+            # self.config(foreground='lightgrey')  # 恢复为浅色
+
+    def update_placeholder(self, new_placeholder, clean_old = True):
+        self.placeholder = new_placeholder
+        if self.get() == "" or self.get() == self.placeholder or clean_old:
+            self.delete(0, tk.END)
+            self.insert(0, self.placeholder)
+            # self.config(foreground='lightgrey')
+        self.event_generate('<<UpdatePlaceholder>>', when='tail')
 
 # 测试自定义组件
 def main():

@@ -1,11 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
 from PIL import ImageTk
-from PIL.ImageOps import expand
 from ttkbootstrap import Style
 
 from config import constant
-from util.undo_redo_entry import UndoRedoEntry
+from widget.undo_redo_entry import UndoRedoEntry
 from ui.syle.tree_view_style_manager import TreeViewStyleManager
 from util import image_util
 
