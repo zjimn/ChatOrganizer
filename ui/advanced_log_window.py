@@ -33,6 +33,13 @@ class AdvancedLogWindow:
         self.second_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
         self.third_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
 
+        self.debug_log_frame = ttk.Frame(self.first_frame, borderwidth=0, relief=tk.RAISED)
+        debug_log_label = ttk.Label(self.debug_log_frame, text="调试", font=("Microsoft YaHei UI", 10))
+        debug_log_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
+        self.debug_log_toggle_button = IconToggleButton(self.debug_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
+        self.debug_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
+        self.debug_log_toggle_button.set_state(True)
+
         self.info_log_frame = ttk.Frame(self.first_frame, borderwidth=0, relief=tk.RAISED)
         info_log_label = ttk.Label(self.info_log_frame, text="信息", font=("Microsoft YaHei UI", 10))
         info_log_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
@@ -40,7 +47,7 @@ class AdvancedLogWindow:
         self.info_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.info_log_toggle_button.set_state(True)
 
-        self.warn_log_frame = ttk.Frame(self.first_frame, borderwidth=0, relief=tk.RAISED)
+        self.warn_log_frame = ttk.Frame(self.second_frame, borderwidth=0, relief=tk.RAISED)
         warn_log_label = ttk.Label(self.warn_log_frame, text="警告", font=("Microsoft YaHei UI", 10))
         warn_log_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
         self.warn_log_toggle_button = IconToggleButton(self.warn_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
@@ -76,17 +83,18 @@ class AdvancedLogWindow:
         request_log_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
         self.response_log_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
-        response_log_label = ttk.Label(self.response_log_frame, text="返回", font=("Microsoft YaHei UI", 10))
+        response_log_label = ttk.Label(self.response_log_frame, text="响应", font=("Microsoft YaHei UI", 10))
         response_log_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
         self.response_log_toggle_button = IconToggleButton(self.response_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
         self.response_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.response_log_toggle_button.set_state(True)
-        response_log_express_label = ttk.Label(self.response_log_frame, text="(API返回文本)", font=("Microsoft YaHei UI", 9))
+        response_log_express_label = ttk.Label(self.response_log_frame, text="(API响应文本)", font=("Microsoft YaHei UI", 9))
         response_log_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
 
         self.main_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=(10, 10))
 
+        self.debug_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
         self.info_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
         self.warn_log_frame.pack(side = tk.LEFT, fill=tk.X, padx=10, pady=(0, 0))
         self.first_frame.pack(side = tk.TOP, fill=tk.X, padx=0, pady=(0, 0))

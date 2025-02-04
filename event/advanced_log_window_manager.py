@@ -29,6 +29,7 @@ class AdvancedLogWindowManager:
         self.load_setting()
 
     def load_setting(self):
+        debug_log_state = self.config_manager.get("info_log_state", False)
         info_log_state = self.config_manager.get("info_log_state", True)
         warn_log_state = self.config_manager.get("warn_log_state", True)
         error_log_state = self.config_manager.get("error_log_state", True)
@@ -36,6 +37,7 @@ class AdvancedLogWindowManager:
         request_log_state = self.config_manager.get("request_log_state", True)
         response_log_state = self.config_manager.get("response_log_state", True)
 
+        self.advanced_log_window.debug_log_toggle_button.set_state(debug_log_state)
         self.advanced_log_window.info_log_toggle_button.set_state(info_log_state)
         self.advanced_log_window.warn_log_toggle_button.set_state(warn_log_state)
         self.advanced_log_window.error_log_toggle_button.set_state(error_log_state)
@@ -47,6 +49,7 @@ class AdvancedLogWindowManager:
         self.set_setting()
 
     def set_setting(self):
+        debug_log_state = self.advanced_log_window.debug_log_toggle_button.get_state()
         info_log_state = self.advanced_log_window.info_log_toggle_button.get_state()
         warn_log_state = self.advanced_log_window.warn_log_toggle_button.get_state()
         error_log_state = self.advanced_log_window.error_log_toggle_button.get_state()
@@ -54,6 +57,7 @@ class AdvancedLogWindowManager:
         request_log_state = self.advanced_log_window.request_log_toggle_button.get_state()
         response_log_state = self.advanced_log_window.response_log_toggle_button.get_state()
 
+        self.config_manager.set("debug_log_state", debug_log_state)
         self.config_manager.set("info_log_state", info_log_state)
         self.config_manager.set("warn_log_state", warn_log_state)
         self.config_manager.set("error_log_state", error_log_state)
