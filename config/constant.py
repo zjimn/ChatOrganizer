@@ -12,10 +12,22 @@ SYSTEM_NAME = "system"
 ASSISTANT_NAME = "assistant"
 OPEN_FOLDER_IMAGE = "res/icon/folder_open.png"
 CLOSED_FOLDER_IMAGE = "res/icon/folder_close.png"
-IMAGE_DIR_PATH = "data/image"
-PREFERENCE_PROPERTIES_FILE = "preference.properties"
-
 TOGGLE_BUTTON_CHECK_IMAGE_PATH = "res/icon/toggle_on.png"
 TOGGLE_BUTTON_UNCHECK_IMAGE_PATH = "res/icon/toggle_off.png"
 APP_NAME = "ChatOrganizer"
 LOG_FOLDER = "logs"
+IMG_FOLDER = "images"
+
+OLLAMA_DEFAULT_URL = "http://localhost:11434"
+
+TXT_MODEL_TYPE = "txt"
+IMG_MODEL_TYPE = "img"
+
+OLLAMA_SERVER_KEY = "ollama"
+OLLAMA_SERVER_NAME = "ollama"
+
+OPENAI_SERVER_KEY = "openai"
+OPENAI_SERVER_NAME = "openai(deepbricks)"
+
+DEEPSEEK_SERVER_KEY = "deepseek"
+DEEPSEEK_SERVER_NAME = "deepseek"
