@@ -1,3 +1,4 @@
+from pydoc import describe
 from typing import Optional
 
 from config.constant import USER_NAME
@@ -5,6 +6,7 @@ from config.enum import ContentType
 from db.content_data_access import ContentDataAccess
 from db.dialogue_data_access import DialogueDataAccess
 from db.models import ContentData
+from util.logger import logger
 from util.str_util import get_chars_by_count
 
 
@@ -15,6 +17,7 @@ class ContentService:
     def load_txt_records_by_page(self, txt="", tree_id=None, page_number=1, page_size=20, content_id=None, sort_by=None,
                                  sort_order="asc"):
         with ContentDataAccess() as cda:
+            if tree_id: tree_id = int(tree_id)
             return cda.get_data_by_describe_or_content_by_page(txt, ContentType.TXT.value, page_number, page_size,
                                                                tree_id, content_id, sort_by, sort_order)
 
@@ -26,11 +29,13 @@ class ContentService:
 
     def load_txt_records(self, txt="", tree_id=None, content_id=None, sort_by=None, sort_order="asc"):
         with ContentDataAccess() as cda:
+            if tree_id: tree_id = int(tree_id)
             return cda.get_data_by_describe_or_content(txt, ContentType.TXT.value, tree_id, content_id, sort_by,
                                                        sort_order)
 
     def load_img_records(self, txt="", tree_id=None, content_id=None, sort_by=None, sort_order="asc"):
         with ContentDataAccess() as cda:
+            if tree_id: tree_id = int(tree_id)
             return cda.get_data_by_describe_or_content(txt, ContentType.IMG.value, tree_id, content_id, sort_by,
                                                        sort_order)
 
@@ -38,15 +43,19 @@ class ContentService:
         if dialogues is not None:
             content = self.merge_txt_content(dialogues, 50)
         with ContentDataAccess() as cda:
-            cda.update_data(content_id, type, None, describe, content, img_path)
+            full_content = self.merge_txt_content(dialogues, ignore_user=False)
+            query_content = describe + full_content
+            cda.update_data(content_id, type, None, describe, content, img_path, query_content)
 
     def move_to_target_tree(self, content_ids, tree_id):
         with ContentDataAccess() as cda:
+            if tree_id: tree_id = int(tree_id)
             for id in content_ids:
                 cda.update_data(data_id=id, content_hierarchy_child_id=tree_id)
 
     def copy_to_target_tree(self, content_ids, tree_id):
         with ContentDataAccess() as cda:
+            if tree_id: tree_id = int(tree_id)
             for content_id in content_ids:
                 data = cda.get_data_by_id(content_id)
                 inserted_data_id = cda.insert_data(data.type, tree_id, data.describe, data.content, data.img_path)
@@ -59,30 +68,38 @@ class ContentService:
         with DialogueDataAccess() as dda:
             dda.batch_update_data(data)
 
-    def save_img_record(self, content_id, tree_id, prompt, db_img_path):
+    def save_img_record(self, content_id, tree_id, prompt, db_img_path, img_model_name, img_model_id):
         with ContentDataAccess() as cda:
+            if tree_id: tree_id = int(tree_id)
             if content_id is None:
                 content_id = cda.insert_data(ContentType.IMG.value, tree_id, prompt, "",
                                              db_img_path)
             with DialogueDataAccess() as dda:
                 dda.insert_data(content_id, "user", prompt)
-                dda.insert_data(content_id, "assistant", "", db_img_path)
+                dda.insert_data(content_id, "assistant", "", db_img_path, img_model_name, img_model_id)
         return content_id
 
-    def save_txt_record(self, content_id, tree_id, prompt, content):
+    def save_txt_record(self, content_id, tree_id, prompt, content, txt_model_name, txt_model_id):
         with ContentDataAccess() as cda:
+            if tree_id: tree_id = int(tree_id)
             if content_id is None:
-                content_id = cda.insert_data(ContentType.TXT.value, tree_id, prompt, content, "")
+                query_content = prompt + content
+                content_id = cda.insert_data(ContentType.TXT.value, tree_id, prompt, content, "", query_content)
+            else:
+                data = cda.get_data_by_id(content_id)
+                query_content = data.query_content
+                query_content += prompt+content
+                cda.update_data(content_id, query_content = query_content)
             with DialogueDataAccess() as dda:
                 dda.insert_data(content_id, "user", prompt)
-                dda.insert_data(content_id, "assistant", content)
+                dda.insert_data(content_id, "assistant", content, None, txt_model_name, txt_model_id)
         return content_id
 
     def load_data(self, content_id: int) -> Optional[ContentData]:
         with ContentDataAccess() as cda:
             data = cda.get_data_by_id(content_id)
             if data is None:
-                print(f"No data found for content_id: {content_id}")
+                logger.log('warning', f"No data found for content_id: {content_id}")
                 return None
             content = self.merge_txt_content(data.dialogues, 50)
             new_data = ContentData(
@@ -107,11 +124,11 @@ class ContentService:
         with DialogueDataAccess() as dda:
             return dda.get_data_by_content_id(content_id)
 
-    def merge_txt_content(self, data, max_chars=None):
+    def merge_txt_content(self, data, max_chars=None, ignore_user=True):
         result = []
         char_count = 0
         for item in data:
-            if item.role == USER_NAME:
+            if (item.role == USER_NAME and ignore_user) or item.delete_time is not None:
                 continue
             line = item.message
             result.append("\n")

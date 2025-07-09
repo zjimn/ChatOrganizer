@@ -1,10 +1,15 @@
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox
+from tkinter import ttk
 from typing import Optional
-from config.app_config import AppConfig
 from config.constant import LAST_SELECTED_TREE_ID_NAME
 from db.content_hierarchy_access import ContentHierarchyDataAccess
 from event.event_bus import event_bus
+from service.tree_service import TreeService
+from util.config_manager import ConfigManager
+from util.logger import logger
+from widget.confirm_dialog import ConfirmDialog
+from widget.custom_confirm_dialog import CustomConfirmDialog
+from widget.input_dialog import InputDialog
 
 
 class TreeManager:
@@ -13,19 +18,21 @@ class TreeManager:
         self.current_item = None
         self.main_window = main_window
         self.tree_view = main_window.directory_tree.tree
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self._setup_context_menu()
         self.update_tree_from_db()
         self.dragged_item = None
         self.floating_label = None
         self.start_drag = False
+        self.tree_service = TreeService()
         self.bind_events()
 
     def _setup_context_menu(self):
-        self.context_menu = tk.Menu(self.tree_view, tearoff=0, font=('微软雅黑', 12))
-        self.context_menu.add_command(label="添加", command=self.add_selected_item)
-        self.context_menu.add_command(label="编辑", command=self.edit_selected_item)
-        self.context_menu.add_command(label="删除", command=self.delete_selected_item)
+        self.context_menu = tk.Menu(self.tree_view, tearoff=0)
+        self.context_menu.add_command(label="添加节点", command=self.add_selected_item)
+        self.context_menu.add_command(label="编辑节点", command=self.edit_selected_item)
+        self.context_menu.add_command(label="删除节点", command=self.delete_selected_item)
+        self.context_menu.add_command(label="清除预设", command=self.delete_dialogue_preset)
         self.tree_view.bind("<Button-3>", self._show_context_menu)
 
     def _show_context_menu(self, event):
@@ -35,28 +42,49 @@ class TreeManager:
             self.tree_view.item(self.current_item, tags=("normal",))
         self.current_item = item
         if item:
+            is_top_node = self.tree_service.is_top_node(item)
+            exist_preset = self.tree_service.exist_preset(item)
+            if is_top_node:
+                self.context_menu.entryconfig("删除节点", state=tk.DISABLED)
+            else:
+                self.context_menu.entryconfig("删除节点", state=tk.NORMAL)
+            if not exist_preset:
+                self.context_menu.entryconfig("清除预设", state=tk.DISABLED)
+            else:
+                self.context_menu.entryconfig("清除预设", state=tk.NORMAL)
             self.publish_press_event(item)
             self.tree_view.selection_set(item)
             self.context_menu.post(event.x_root, event.y_root)
 
     def edit_selected_item(self):
         selected_item = self.tree_view.focus()
+        tree_name  = self.tree_service.get_name_by_tree_id(selected_item)
         if selected_item:
-            new_name = simpledialog.askstring("编辑节点", "输入新名称:")
-            if new_name:
-                self.update_item(selected_item, new_name)
+            dialog = InputDialog(self.root, title="编辑节点", prompt="输入新名称", init_content=tree_name)
+            if dialog.result:
+                self.update_item(selected_item, dialog.input_content)
 
     def delete_selected_item(self):
         selected_item = self.tree_view.focus()
+        is_top_node = self.tree_service.is_top_node(selected_item)
+        if is_top_node:
+            CustomConfirmDialog(parent=self.root, title="警告", message="不能删除顶层节点?")
+            return
         if selected_item:
-            result = messagebox.askyesno("删除节点", "确定需要删除该节点及下级节点吗?")
-            if result:
+            dialog = ConfirmDialog(parent=self.root, title="删除节点", message="确定要删除该节点及下级节点吗?")
+            if dialog.result:
                 previous_item_id = self.get_previous_sibling_or_parent(selected_item)
                 self.delete_item(selected_item)
                 if previous_item_id:
                     self.tree_view.selection_set(previous_item_id)
                     self.tree_view.focus(previous_item_id)
                     self.current_item = previous_item_id
+
+    def delete_dialogue_preset(self):
+        selected_item = self.tree_view.focus()
+        self.tree_service.delete_preset(selected_item)
+        event_bus.publish("TreeDialoguePresetDeleted", tree_id = self.current_item)
+
 
     def get_previous_sibling_or_parent(self, item_id: str) -> Optional[str]:
         parent_id = self.tree_view.parent(item_id)
@@ -75,18 +103,18 @@ class TreeManager:
     def add_selected_item(self):
         selected_item = self.tree_view.focus()
         if not selected_item:
-            messagebox.showinfo("Info", "Please select a node where you want to add a new node.")
+            CustomConfirmDialog(parent=self.root, title="提示", message="请先选择一个节点")
             return
-        new_node_name = simpledialog.askstring("输入", "输入新增的节点名称:")
-        if new_node_name is None:
+        dialog = InputDialog(parent = self.root, title="新增节点", prompt="输入节点名称")
+        if not dialog.result:
             return
-        if new_node_name:
+        if dialog.input_content:
             new_item_id = self._generate_new_item_id()
             self.tree_view.item(selected_item, tags=("normal",))
-            self.insert_item(parent_id=selected_item, item_id=new_item_id, name=new_node_name,
+            self.insert_item(parent_id=selected_item, item_id=new_item_id, name=dialog.input_content,
                              level=self._get_node_level(selected_item) + 1)
         else:
-            messagebox.showwarning("提示", "节点名称不能为空.")
+            CustomConfirmDialog(parent=self.root, title="提示", message="节点名称不能为空")
 
     def _generate_new_item_id(self) -> int:
         def get_max_id() -> int:
@@ -120,7 +148,7 @@ class TreeManager:
 
     def set_focus_to_first_item(self):
         first_item = None
-        last_selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
+        last_selected_tree_id = self.config_manager.get(LAST_SELECTED_TREE_ID_NAME)
         if last_selected_tree_id is not None and self.tree_view.exists(last_selected_tree_id):
             first_item = last_selected_tree_id
         if first_item is None and len(self.tree_view.get_children()) > 0:
@@ -132,7 +160,7 @@ class TreeManager:
 
     def _insert_tree_item(self, parent_id: Optional[int], item_id: int, text: str):
         parent_item = parent_id if parent_id is not None else ''
-        self.tree_view.insert(parent_item, 'end', iid=item_id, text="  " + text,
+        self.tree_view.insert(parent_item, 'end', iid=item_id, text="  " + text + "  ",
                               image=self.main_window.directory_tree.closed_folder_resized_icon)
 
     def insert_item(self, parent_id: Optional[int], item_id: int, name: str, level: int):
@@ -153,16 +181,16 @@ class TreeManager:
             parent_id = self.tree_view.parent(parent_id)
 
     def update_item(self, item_id: int, name: str) -> None:
-        self.tree_view.item(item_id, text=name)
+        self.tree_view.item(item_id, text="  " + name + "  ")
         with ContentHierarchyDataAccess() as cha:
             cha.update_data(child_id=item_id, name=name)
 
     def update_item_enhanced(self, item_id: int, new_text: str, new_parent_id: Optional[int] = None,
                              new_hierarchy_level: Optional[int] = None):
         if self.tree_view.exists(item_id):
-            self.tree_view.item(item_id, text="  " + new_text)
+            self.tree_view.item(item_id, text="  " + new_text + "  ")
         else:
-            print(f"Item with ID {item_id} does not exist.")
+            logger.log('warning', f"Item with ID {item_id} does not exist.")
         with ContentHierarchyDataAccess() as cha:
             cha.update_data(child_id=item_id, parent_id=new_parent_id, level=new_hierarchy_level)
 
@@ -201,7 +229,7 @@ class TreeManager:
         if selected_item_id:
             return int(selected_item_id)
         else:
-            print("No item is selected.")
+            logger.log('warning', f"No item is selected.")
             return None
 
     def on_mouse_move(self, event):
@@ -219,21 +247,26 @@ class TreeManager:
             self.current_item = None
 
     def on_item_press(self, event):
-        selected_item = self.get_selected_item_id()
-        self.dragged_item = self.tree_view.identify_row(event.y)
+        dragged_item_temp = self.tree_view.identify_row(event.y)
+        if not dragged_item_temp:
+            return
+        self.dragged_item = dragged_item_temp
         self.start_drag = False
         self.destroy_floating_label()
-        self.publish_press_event(self.dragged_item)
+        self.publish_press_event(int(self.dragged_item))
 
     def publish_press_event(self, item):
-        self.app_config.set(LAST_SELECTED_TREE_ID_NAME, item)
-        event_bus.publish("TreeItemPress", tree_id=item)
+        self.config_manager.set(LAST_SELECTED_TREE_ID_NAME, item)
+        event_bus.publish("TreeItemPress", tree_id=int(item))
 
     def on_drag(self, event):
         if self.dragged_item and not self.start_drag:
             item_text = self.tree_view.item(self.dragged_item, 'text')
             if item_text:
-                self.floating_label = tk.Label(self.root, text=item_text, bg='lightgrey', relief='flat')
+                style = ttk.Style()
+                style.configure("Custom.TLabel", background="#2c3e50", foreground="white", font=("Microsoft YaHei UI", 12))
+                self.floating_label = ttk.Label(self.root, text=item_text)
+                self.floating_label.configure(style="Custom.TLabel")
                 self.start_drag = True
         if self.floating_label and self.start_drag:
             self.floating_label.place(x=event.x_root - self.root.winfo_rootx() + 10,
@@ -297,12 +330,18 @@ class TreeManager:
         self.tree_view.see(tree_id)
         self.publish_press_event(tree_id)
 
+    def on_dialog_preset_changed(self, preset_id, sys_messages):
+        selected_item = self.tree_view.focus()
+        self.tree_service.update_preset(selected_item, preset_id)
+
     def bind_events(self):
         self.tree_view.bind('<<TreeviewOpen>>', self.toggle_folder_icon)
         self.tree_view.bind('<<TreeviewClose>>', self.toggle_folder_icon)
         event_bus.subscribe('MoveToTargetTree', self.on_move_to_target_tree)
+        event_bus.subscribe('DialogPresetChanged', self.on_dialog_preset_changed)
         self.tree_view.bind('<ButtonPress-1>', self.on_item_press)
         self.tree_view.bind('<B1-Motion>', self.on_drag)
         self.tree_view.bind('<ButtonRelease-1>', self.on_drop)
         self.tree_view.bind("<Motion>", self.on_mouse_move)
         self.tree_view.bind("<Leave>", self.on_mouse_leave)
+

@@ -2,13 +2,14 @@ import threading
 import tkinter as tk
 from tkinter import DISABLED, NORMAL
 import _tkinter
-from config.app_config import AppConfig
 from config.constant import LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, LAST_LIST_ORDER_BY_COLUMN, \
     LAST_LIST_SORT_ORDER_BY, PER_PAGE_COUNT_TXT, PER_PAGE_COUNT_IMG
 from event.event_bus import event_bus
 from event.list_editor import ListEditor
 from service.content_service import ContentService
+from util.config_manager import ConfigManager
 from util.image_util import open_img_replace_if_error
+from util.logger import logger
 from util.str_util import get_chars_by_count
 
 
@@ -24,27 +25,30 @@ class ListManager:
         self.selected_tree_id = None
         self.main_window = main_window
         self.tree = main_window.display_frame.tree
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.set_tree_by_type_option()
         self.pagination_frame = main_window.display_frame.pagination_frame
         self.search_input_entry_text = main_window.display_frame.search_input_entry_text
+        self.search_input_text = main_window.display_frame.search_input_text
+        self.search_button = main_window.display_frame.search_button
         self.image_list = []
         self.context_menu = tk.Menu(self.tree, tearoff=0)
         self.content_service = ContentService()
         self.bind_events()
         ListEditor(main_window)
-        self.order_by_column = "id"
-        self.sort_order_by = "asc"
+        self.order_by_column = "create_time"
+        self.sort_order_by = "desc"
         self.sort_reverse = {
             "id": False,
             "describe": False,
             "content": False,
-            "create_time": False
+            "create_time": True
         }
+        self.check_input_text()
 
     def load_last_sort_order_by(self):
-        order_by_column = self.app_config.get(LAST_LIST_ORDER_BY_COLUMN)
-        sort_order_by = self.app_config.get(LAST_LIST_SORT_ORDER_BY)
+        order_by_column = self.config_manager.get(LAST_LIST_ORDER_BY_COLUMN)
+        sort_order_by = self.config_manager.get(LAST_LIST_SORT_ORDER_BY)
         if order_by_column:
             self.order_by_column = order_by_column
         if sort_order_by:
@@ -70,25 +74,28 @@ class ListManager:
             records, count = self.content_service.load_txt_records_by_page(txt, selected_content_hierarchy_child_id,
                                                                            page_number, page_size, content_id, sort_by,
                                                                            sort_order)
-            self.data = records
             self.total = count
             self.clear_treeview()
             for index, record in enumerate(records):
                 tag = self.get_tag(index)
+                content = get_chars_by_count(record.content, 30)
+                describe = get_chars_by_count(record.describe, 30)
                 self.tree.insert("", tk.END, iid=record.id, values=(
                     record.id,
-                    record.describe,
-                    get_chars_by_count(record.content),
+                    describe,
+                    content,
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 ), tags=(tag,))
         if content_id:
             records = self.content_service.load_txt_records(txt, selected_content_hierarchy_child_id, content_id)
             if len(records) > 0:
                 record = records[0]
+                content = get_chars_by_count(record.content, 30)
+                describe = get_chars_by_count(record.describe, 30)
                 new_values = (
                     record.id,
-                    record.describe,
-                    get_chars_by_count(record.content),
+                    describe,
+                    content,
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 )
                 self.update_single_item(item_id, new_values)
@@ -122,12 +129,23 @@ class ListManager:
         if not sort_order:
             sort_by = self.sort_order_by
         txt = self.search_input_entry_text.get()
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             self.update_txt_data_items(txt, self.selected_tree_id, content_id=content_id, item_id=item_id,
                                        sort_by=sort_by, sort_order=sort_order)
         else:
             self.update_img_data_items(txt, self.selected_tree_id, content_id=content_id, item_id=item_id,
                                        sort_by=sort_by, sort_order=sort_order)
+
+    def check_input_text(self, event=None):
+        txt = self.search_input_entry_text.get()
+        check_result = True
+        if not txt:
+            check_result = False
+        if check_result:
+            self.search_button.config(state=tk.NORMAL)
+        else:
+            self.search_button.config(state=tk.DISABLED)
+        return check_result
 
     def get_tag(self, index):
         return 'odd' if index % 2 == 0 else 'even'
@@ -157,7 +175,7 @@ class ListManager:
                                     ), tags=(tag,))
             self.image_list.append(img_tk)
         except Exception as e:
-            print(f"Error adding item with image {prompt}: {e}")
+            logger.log('error', f'Error adding item with image {prompt}:{e}')
         return item
 
     def update_img_data_items(self, txt, selected_content_hierarchy_child_id=None, content_id=None, item_id=None,
@@ -171,7 +189,6 @@ class ListManager:
             records, count = self.content_service.load_img_records_by_page(txt, selected_content_hierarchy_child_id,
                                                                            page_number, page_size, content_id, sort_by,
                                                                            sort_order)
-            self.data = records
             self.total = count
             index = 0
             for record in records:
@@ -190,10 +207,12 @@ class ListManager:
                 img_path = record.img_path
                 img_tk = open_img_replace_if_error(img_path, '', (None, 80))
                 self.image_list.append(img_tk)
+
                 new_values = (
+                    "",
                     record.id,
-                    record.describe,
                     record.img_path,
+                    record.describe,
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 )
                 self.tree.item(item_id, image=img_tk, values=new_values)
@@ -222,9 +241,6 @@ class ListManager:
         self.tree.update_idletasks()
         self.tree.update()
 
-    def on_button_click(self, index):
-        print(f"Button clicked for item {index}")
-
     def on_update_list(self, *args):
         self.current_page = 1
         self.thread_update_list()
@@ -234,8 +250,11 @@ class ListManager:
             self.main_window.display_frame.search_input_text.after_cancel(self.delay_id)
         self.delay_id = self.main_window.display_frame.search_input_text.after(300, self.on_update_list)
 
-    def thread_update_list(self, sort_by=None, sort_order="asc"):
-        threading.Thread(target=lambda: self.update_treeview(sort_by, sort_order)).start()
+    def on_click_search_button(self, *args):
+        self.on_update_list()
+
+    def thread_update_list(self):
+        threading.Thread(target=lambda: self.update_treeview(self.order_by_column, self.sort_order_by)).start()
 
     def on_change_type_update_list(self, type=None):
         self.set_tree_by_type_option(type)
@@ -245,7 +264,7 @@ class ListManager:
     def set_tree_by_type_option(self, type=None):
         self.main_window.display_frame.tree.pack_forget()
         if type is None:
-            type = self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+            type = self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
         if type == TYPE_OPTION_TXT_KEY:
             self.tree = self.main_window.display_frame.txt_tree
         else:
@@ -254,7 +273,7 @@ class ListManager:
         self.tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
     def on_insert_items(self, content_ids):
-        view_type = self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
+        view_type = self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY)
         self.set_column_width(self.main_window.output_window.output_frame)
         for content_id in content_ids:
             if view_type == TYPE_OPTION_TXT_KEY:
@@ -276,20 +295,20 @@ class ListManager:
                 try:
                     self.tree.delete(item)
                 except _tkinter.TclError as e:
-                    print(f"Error deleting item {item}: {e}")
+                    logger.log('error', f"Error deleting item {item}: {e}")
 
     def sort_column(self, col):
         self.sort_reverse[col] = not self.sort_reverse[col]
         sort_order = "desc" if self.sort_reverse[col] else "asc"
         self.order_by_column = col
         self.sort_order_by = sort_order
-        self.thread_update_list(col, sort_order)
+        self.thread_update_list()
 
     def on_treeview_click(self, event):
         region = self.tree.identify_region(event.x, event.y)
         if region == "heading":
             column = self.tree.identify_column(event.x)
-            if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
                 if column == "#1":
                     self.sort_column("describe")
                 elif column == "#2":
@@ -310,7 +329,7 @@ class ListManager:
         last_item = self.tree.get_children()[-1]
         bx = self.tree.bbox(last_item)
         if bx == '' or self.tree.winfo_height() < bx[3]:
-            if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
                 self.main_window.display_frame.tree_img_scrollbar.pack_forget()
                 self.main_window.display_frame.tree_txt_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
             else:
@@ -367,9 +386,13 @@ class ListManager:
         self.bind_tree_events()
         event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
         self.search_input_entry_text.trace_add('write', self.on_change_search_text)
+        self.search_button.bind("<Button-1>", self.on_click_search_button)
         self.main_window.directory_tree.tree.bind('<<TreeviewSelect>>', self.on_update_list)
         event_bus.subscribe('InsertListItems', self.on_insert_items)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
         event_bus.subscribe('UpdateListSingleItem', self.update_list_single_item)
         self.main_window.display_frame.prev_button.bind("<Button-1>", self.previous_page)
         self.main_window.display_frame.next_button.bind("<Button-1>", self.next_page)
+        self.search_input_text.bind("<Key>", self.check_input_text)
+        self.search_input_text.bind("<<CustomKey>>", self.check_input_text)
+        self.search_input_text.bind("<KeyRelease>", self.check_input_text)

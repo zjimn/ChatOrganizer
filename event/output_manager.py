@@ -1,34 +1,44 @@
 import math
 import threading
+import time
 import tkinter as tk
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from tkinter import font as tkfont, filedialog
+from tkinter import font as tkfont, filedialog, messagebox
 import requests
 from PIL import Image, ImageTk
-from api.openai_image_api import OpenaiImageApi
-from api.openai_text_api import OpenaiTextApi
+
 from config import constant
-from config.app_config import AppConfig
 from config.constant import LAST_TYPE_OPTION_KEY_NAME, ASSISTANT_NAME, TYPE_OPTION_TXT_KEY, \
     TYPE_OPTION_IMG_KEY
-from config.enum import ViewType
 from db.models import Dialogue
 from event.event_bus import event_bus
+from exception.chat_request_error import ChatRequestError
+from exception.chat_request_warn import ChatRequestWarn
+from util.text_highlighter import TextHighlighter
+from widget.loading_spinner import LoadingSpinner
+from util.cancel_manager import CancelManager
+from util.chat_factory import ChatFactory
+from util.config_manager import ConfigManager
+from util.logger import logger
 from service.content_service import ContentService
 from util.image_viewer import ImageViewer
 from util.image_util import full_cover_resize
 from util.text_inserter import TextInserter
+from widget.custom_confirm_dialog import CustomConfirmDialog
 
 
 class OutputManager:
     def __init__(self, main_window):
+        self.saved_geometry = None
+        self.last_click_item_time = None
         self.session_id = None
+        self.inited = False
         self.main_window = main_window
         self.output_window = main_window.output_window
         self.root = main_window.root
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.output_window_canvas_scroll_enabled = None
         self.image_viewer = ImageViewer(self.root)
         self.focus_dialog_index = None
@@ -36,48 +46,73 @@ class OutputManager:
         self.dialog_labels = []
         self.zoom_levels = []
         self.dialog_images = []
+        self.sys_messages = []
         self.set_output_window_pos()
-        self.img_generator = OpenaiImageApi()
-        self.txt_generator = OpenaiTextApi()
+        self.chat_factory = ChatFactory()
         self.content_service = ContentService()
         self.selected_tree_id = None
         self.bind_events()
         self.text_inserter = TextInserter(self.root, self.main_window.output_window.output_text)
+        self.text_highlighter = TextHighlighter(self.main_window.output_window.output_text)
+        self.reload_model()
+        self.loading_spinner = LoadingSpinner(main_window.output_window.output_window)
+        self.open_item_thread_ids = []
+
+    def reload_model(self):
+        event_bus.publish("ReloadDialogModel")
 
     def show_text(self, main_window, data, append=False):
-        main_window.output_window.output_window.deiconify()
+        self.restore_window()
         self.main_window.output_window.output_window_scrollbar.pack_forget()
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.clear_output_window_canvas_data()
-        main_window.output_window.output_text.pack(fill=tk.BOTH, expand=True)
-        main_window.output_window.output_text.config(state=tk.NORMAL)
-        if not append:
-            main_window.output_window.output_text.delete(1.0, tk.END)
-        else:
-            main_window.output_window.output_text.yview(tk.END)
-        for index, item in enumerate(data):
-            main_window.output_window.output_text.config(state=tk.NORMAL)
-            role = item.role
-            message = item.message
-            if role == ASSISTANT_NAME:
-                self.text_inserter.set_color("#ebebeb")
-                self.text_inserter.insert_text_batch(f"{message}\n", 0, False)
+        main_window.output_window.text_component.pack(fill=tk.BOTH, expand=True)
+        main_window.output_window.text_component.output_text.config(state=tk.NORMAL)
+
+        try:
+            if not append:
+                main_window.output_window.output_text.delete(1.0, tk.END)
             else:
-                if index == 0:
-                    user_content = f"{message}\n\n"
+                main_window.output_window.output_text.yview(tk.END)
+            self.loading_spinner.stop()
+            for index, item in enumerate(data):
+                main_window.output_window.output_text.config(state=tk.NORMAL)
+                role = item.role
+                message = item.message
+                if role == ASSISTANT_NAME:
+                    char_list = list(message)
+                    self.text_highlighter.follow_insert = False
+                    self.text_highlighter.batch_insert_word(char_list)
+                    self.text_highlighter.insert_word("\n")
                 else:
-                    user_content = f"\n{message}\n\n"
-                font = ("微软雅黑", 15, "bold")
-                self.text_inserter.insert_normal(user_content, font)
+                    if index == 0:
+                        user_content = f"{message}\n\n"
+                    else:
+                        user_content = f"\n{message}\n\n"
+                    font = ("Microsoft YaHei UI", 15, "bold")
+                    self.text_inserter.insert_normal(user_content, font)
+        except Exception as e:
+            self.loading_spinner.stop()
+            logger.log('error', e)
+        self.open_item_thread_ids.clear()
         main_window.output_window.output_text.config(state=tk.DISABLED)
 
-    def show_text_append(self, main_window, user_message, response_message, append=False):
-        main_window.output_window.output_window.deiconify()
+    def prepare_text(self):
+        self.restore_window()
         self.main_window.output_window.output_window_scrollbar.pack_forget()
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.clear_output_window_canvas_data()
-        main_window.output_window.output_text.pack(fill=tk.BOTH, expand=True)
-        main_window.output_window.output_text.config(state=tk.NORMAL)
+        self.main_window.output_window.text_component.pack(fill=tk.BOTH, expand=True)
+        self.main_window.output_window.text_component.output_text.config(state=tk.NORMAL)
+        return self.main_window.output_window.text_component.output_text
+
+    def show_text_append(self, main_window, user_message, response_message, append=False):
+        self.restore_window()
+        self.main_window.output_window.output_window_scrollbar.pack_forget()
+        self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.clear_output_window_canvas_data()
+        main_window.output_window.text_component.pack(fill=tk.BOTH, expand=True)
+        main_window.output_window.text_component.output_text.config(state=tk.NORMAL)
         if not append:
             main_window.output_window.output_text.delete(1.0, tk.END)
         else:
@@ -86,13 +121,9 @@ class OutputManager:
             user_content = f"{user_message}\n\n"
         else:
             user_content = f"\n{user_message}\n\n"
-        response_content = f"{response_message}\n"
-        font = ("微软雅黑", 15, "bold")
+        font = ("Microsoft YaHei UI", 15, "bold")
         if user_message is not None:
             self.text_inserter.insert_normal(user_content, font)
-        if response_message is not None:
-            self.text_inserter.set_color("#e6e6e6")
-            self.text_inserter.insert_text(response_content, 1000)
 
     def download_img(self, url):
         response = requests.get(url)
@@ -100,15 +131,18 @@ class OutputManager:
         return Image.open(image_data)
 
     def submit_prompt(self):
+        self.store_window_geometry()
+        self.loading_spinner.start()
         prompt = self.main_window.input_frame.input_text.get('1.0', 'end-1c').strip()
         option = self.main_window.input_frame.option_var.get()
         selected_size = self.main_window.input_frame.size_var.get()
-        self.main_window.output_window.output_window.deiconify()
+        self.restore_window()
         show_tree = self.session_id is None
         if not prompt:
+            self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
             return
         prompt = self.main_window.input_frame.input_text.get('1.0', 'end-1c')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
             new_data = Dialogue(
                 role="user",
                 message=prompt,
@@ -121,13 +155,37 @@ class OutputManager:
             self.show_text_append(self.main_window, prompt, None, self.session_id is not None)
             self.main_window.output_window.output_text.yview(tk.END)
         self.main_window.input_frame.frame.event_generate('<<RequestOpenaiBegin>>')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, '0') == TYPE_OPTION_IMG_KEY:
-            image_data = self.img_generator.create_image_from_text(prompt, selected_size)
-            if image_data is None:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_IMG_KEY:
+            image_data = None
+            success = False
+            try:
+                model_server = self.chat_factory.create_model_server()
+                image_data = model_server.create_image_from_text(prompt, selected_size)
+                success = True
+            except ChatRequestError as cre:
+                thread_id = threading.get_ident()
+                running = CancelManager.check_running_state(thread_id)
+                if running:
+                    CustomConfirmDialog(parent=self.main_window.output_window.output_window, title="错误", message=cre)
+            except ChatRequestWarn as crw:
+                CustomConfirmDialog(parent=self.main_window.output_window.output_window, title="警告", message=crw)
+            except ValueError as ve:
+                CustomConfirmDialog(parent=self.main_window.output_window.output_window, title="错误", message=ve)
+            except NotImplementedError as nie:
+                CustomConfirmDialog(parent=self.main_window.output_window.output_window, title="警告", message=nie)
+            except Exception as e:
+                logger.log('error', e)
+                thread_id = threading.get_ident()
+                running = CancelManager.check_running_state(thread_id)
+                if running:
+                    messagebox.showerror("错误", f"请求错误:\n{e}", parent=self.main_window.output_window.output_window)
+            if not success or image_data is None:
+                self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
+                self.loading_spinner.stop()
                 return
             url = image_data[0]
             filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png")
-            file_path = Path(self.app_config.get("image_dir_path")) / filename
+            file_path = Path(self.config_manager.get("img_folder")) / filename
             img = self.download_img(url)
             img.save(file_path)
             dialogue_data = Dialogue(
@@ -135,25 +193,53 @@ class OutputManager:
                 img_path=file_path
             )
             self.set_dialog_images([dialogue_data], True, True)
+            self.loading_spinner.stop()
+            img_model_name = self.config_manager.get("img_model_name")
+            img_model_id = self.config_manager.get("img_model_id")
             self.session_id = self.content_service.save_img_record(self.session_id, self.selected_tree_id, prompt,
-                                                                   str(file_path))
+                                                                   str(file_path), img_model_name, img_model_id)
         else:
             self.set_output_text_default_background()
-            answer = self.txt_generator.generate_gpt_completion(prompt)
-            if answer is None:
+            answer = None
+            success = False
+            try:
+                text_widget = self.prepare_text()
+                answer = self.chat_factory.chat_txt(prompt, self.sys_messages, text_widget, loading_spinner = self.loading_spinner)
+                success = True
+            except ChatRequestError as cre:
+                thread_id = threading.get_ident()
+                running = CancelManager.check_running_state(thread_id)
+                if running:
+                    CustomConfirmDialog(parent=self.main_window.output_window.output_window, title="错误", message=cre)
+            except ChatRequestWarn as crw:
+                CustomConfirmDialog(parent=self.main_window.output_window.output_window, title="警告", message=crw)
+            except NotImplementedError as nie:
+                CustomConfirmDialog(parent=self.main_window.output_window.output_window, title="错误", message=nie)
+            except Exception as e:
+                thread_id = threading.get_ident()
+                running = CancelManager.check_running_state(thread_id)
+                if running:
+                    messagebox.showerror("错误", f"请求错误:\n{e}", parent=self.main_window.output_window.output_window)
+                logger.log('error', e)
+            if not answer or not success:
+                self.loading_spinner.stop()
+                self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
                 return
-            self.show_text_append(self.main_window, None, answer, True)
+            self.loading_spinner.stop()
+            self.main_window.output_window.output_text.config(state=tk.DISABLED)
+            txt_model_name = self.config_manager.get("txt_model_name")
+            txt_model_id = self.config_manager.get("txt_model_id")
             self.session_id = self.content_service.save_txt_record(self.session_id, self.selected_tree_id, prompt,
-                                                                   answer)
+                                                                   answer, txt_model_name, txt_model_id)
         if show_tree:
             self.insert_tree_item(self.session_id)
         self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
 
     def set_dialog_images(self, data, append=False, only_img=False, first=False):
         self.main_window.output_window.output_window_canvas.yview_moveto(0)
-        self.main_window.output_window.output_text.pack_forget()
+        self.main_window.output_window.text_component.pack_forget()
         self.main_window.output_window.output_window_canvas.pack(side=tk.LEFT, fill=tk.Y, expand=True)
-        self.main_window.output_window.output_window.deiconify()
+        self.restore_window()
         self.main_window.output_window.output_window_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         if first or not append:
             self.clear_output_window_canvas_data()
@@ -174,13 +260,14 @@ class OutputManager:
             frame.pack_propagate(False)
             frame.pack(side=tk.TOP, fill=tk.Y, padx=0, pady=10, anchor=tk.CENTER)
             txt = f"{item.message}\n"
-            font_name = '微软雅黑'
+            font_name = 'Microsoft YaHei UI'
             font_size = 15
             text_label = tk.Label(
                 frame,
                 text=txt,
                 font=(font_name, font_size, 'bold'),
-                bg='#e8eaed'
+                bg='#e8eaed',
+                wraplength=580
             )
             if image_path is None or image_path == "":
                 font_height = self.calculate_font_height(font_name, font_size)
@@ -206,7 +293,7 @@ class OutputManager:
                 self.root.after(100, lambda: self.main_window.output_window.output_window_canvas.yview_moveto(1.0))
 
     def on_output_text_scroll_drag(self, event):
-        self.text_inserter.set_follow_insert_state(False)
+        self.text_highlighter.set_follow_insert_state(False)
 
     def update_dialog_images(self, index):
         if 0 <= index < len(self.dialog_images):
@@ -252,7 +339,7 @@ class OutputManager:
             try:
                 image.save(file_path)
             except Exception as e:
-                print(f"Failed to save image: {e}")
+                logger.log('error', f"Failed to save image: {e}")
 
     def on_right_click(self, event, image):
         menu = tk.Menu(self.root, tearoff=0)
@@ -265,7 +352,7 @@ class OutputManager:
     def on_output_window_canvas_mouse_wheel(self, event):
         if not self.output_window_canvas_scroll_enabled:
             return
-        if self.focus_dialog_index is not None or self.app_config.get(
+        if self.focus_dialog_index is not None or self.config_manager.get(
                 LAST_TYPE_OPTION_KEY_NAME) == constant.TYPE_OPTION_TXT_KEY:
             return
         self.main_window.output_window.output_window_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
@@ -277,6 +364,7 @@ class OutputManager:
         self.output_window_canvas_scroll_enabled = False
 
     def set_output_window_pos(self):
+        self.root.update()
         width = self.root.winfo_width()
         height = self.root.winfo_height()
         root_x = self.root.winfo_x()
@@ -297,18 +385,31 @@ class OutputManager:
 
     def on_press_tree_item(self, tree_id):
         self.selected_tree_id = tree_id
-        self.close_output_window()
+        if self.inited:
+            self.close_output_window()
 
     def on_close_output_window(self, event=None):
         self.close_output_window()
 
+    def store_window_geometry(self):
+        self.saved_geometry = self.main_window.output_window.output_window.geometry()
+
     def close_output_window(self):
+        self.store_window_geometry()
         self.main_window.output_window.output_window.withdraw()
         self.session_id = None
-        self.txt_generator.cancel_request()
-        self.img_generator.cancel_request()
-        self.img_generator.clear_history()
-        self.txt_generator.clear_history()
+        model_server = self.chat_factory.create_model_server()
+        CancelManager.remove_all_running()
+        model_server.clear_history()
+        event_bus.publish('CloseOutputWindow')
+        self.main_window.input_frame.frame.event_generate('<<RequestOpenaiFinished>>')
+        self.inited = True
+
+    def restore_window(self):
+        self.main_window.output_window.output_window.deiconify()
+        if self.saved_geometry:
+            self.main_window.output_window.output_window.geometry(self.saved_geometry)
+
 
     def on_change_type_update_list(self, **args):
         self.close_output_window()
@@ -333,37 +434,75 @@ class OutputManager:
             widget.destroy()
 
     def on_item_double_click(self, event, main_window, root):
+        if self.open_item_thread_ids and self.last_click_item_time and (time.time() - self.last_click_item_time) < 1:
+            return
+        self.last_click_item_time = time.time()
+        self.open_item_thread_ids.clear()
+        thread = threading.Thread(target=lambda: self.open_item(event, main_window, root))
+        thread.start()
+        thread_id = thread.ident
+        self.open_item_thread_ids.append(thread_id)
+        self.inited = True
+
+    def open_item(self, event, main_window, root):
+        self.store_window_geometry()
+        self.loading_spinner.start()
         selected_items = main_window.display_frame.tree.selection()
         if len(selected_items) == 0:
             return
         item = main_window.display_frame.tree.selection()[0]
         values = main_window.display_frame.tree.item(item, 'values')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             self.session_id = values[0]
             self.set_output_text_default_background()
             data = self.content_service.load_txt_dialogs(self.session_id)
-            self.txt_generator.clear_history()
+            model_server = self.chat_factory.create_model_server()
+            model_server.clear_history()
             for item in data:
-                self.txt_generator.add_history_message(item.role, item.message)
+                model_server.add_history_message(item.role, item.message)
             self.show_text(main_window, data)
+
         else:
             self.session_id = values[1]
             dialogs = self.content_service.load_img_dialogs(self.session_id)
-            self.img_generator.clear_history()
-            for item in dialogs:
-                if item.role == "user":
-                    self.img_generator.add_history_message("Prompt",
-                                                           item.message)
             self.set_dialog_images(dialogs)
+            self.open_item_thread_ids.clear()
+        event_bus.publish("OpenChatDetail")
+        self.loading_spinner.stop()
 
     def thread_submit(self, event=None):
-        threading.Thread(target=lambda: self.submit_prompt()).start()
+        self.cancel_request()
+        self.loading_spinner.stop()
+        thread = threading.Thread(target=lambda: self.submit_prompt())
+        thread.start()
+        thread_id = thread.ident
+        CancelManager.add_running(thread_id)
+        event_bus.publish("OpenChatDetail")
+        self.inited = True
 
-    def cancel_request(self, event):
-        if self.txt_generator:
-            self.txt_generator.cancel_request()
-        if self.img_generator:
-            self.img_generator.cancel_request()
+    def cancel_request(self, event = None):
+        CancelManager.remove_all_running()
+        self.loading_spinner.stop()
+
+
+    def on_press_cancel_request_hot_key(self, event = None):
+        self.cancel_request()
+        self.root.event_generate('<<HotKeyCancelRequest>>')
+
+    def on_press_new_chat_hot_key(self, event = None):
+        self.cancel_request()
+        self.root.event_generate('<<HotKeyNewChat>>')
+
+    def update_sys_messages(self, preset_id, sys_messages):
+        self.sys_messages = sys_messages
+
+    def on_dialog_model_changed(self, model_name):
+        model_server = self.chat_factory.create_model_server()
+        model_server.reload_model(model_name)
+
+    def on_dialog_setting_changed(self):
+        model_server = self.chat_factory.create_model_server()
+        model_server.reload_config()
 
     def bind_tree_events(self):
         self.main_window.display_frame.tree.bind("<Double-1>",
@@ -372,7 +511,7 @@ class OutputManager:
 
     def bind_events(self):
         self.bind_tree_events()
-        self.output_window.output_window.protocol("WM_DELETE_WINDOW", self.on_close_output_window)
+        self.output_window.output_window.protocol("WM_DELETE_WINDOW", self.close_output_window)
         self.output_window.output_window.bind("<MouseWheel>", self.on_mouse_wheel)
         self.output_window.output_text.vbar.bind("<B1-Motion>", lambda event: self.on_output_text_scroll_drag(event))
         self.output_window.output_text.bind("<MouseWheel>", lambda event: self.on_output_text_scroll_drag(event))
@@ -381,5 +520,14 @@ class OutputManager:
         self.output_window.output_window_canvas.bind_all("<MouseWheel>", self.on_output_window_canvas_mouse_wheel)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
         event_bus.subscribe('ChangeTypeUpdateList', self.on_change_type_update_list)
+        event_bus.subscribe('NewChat', self.close_output_window)
+        event_bus.subscribe('DialogPresetChanged', self.update_sys_messages)
+        event_bus.subscribe('DialogPresetLoaded', self.update_sys_messages)
+        event_bus.subscribe('DialogModelChanged', self.on_dialog_model_changed)
+        event_bus.subscribe('DialogSettingChanged', self.on_dialog_setting_changed)
         self.root.bind('<<SubmitRequest>>', lambda event: self.thread_submit(event))
         self.root.bind('<<CancelRequest>>', lambda event: self.cancel_request(event))
+        self.output_window.output_window.bind("<Control-Shift-O>", self.on_press_cancel_request_hot_key)
+        self.output_window.output_window.bind("<Control-Shift-o>", self.on_press_cancel_request_hot_key)
+        self.output_window.output_window.bind("<Control-Shift-N>", self.on_press_new_chat_hot_key)
+        self.output_window.output_window.bind("<Control-Shift-n>", self.on_press_new_chat_hot_key)

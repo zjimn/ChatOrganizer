@@ -1,13 +1,11 @@
 import tkinter as tk
 from datetime import datetime
 from tkinter import *
-from tkinter import messagebox, ttk, font
+from tkinter import ttk, font
 from PIL import ImageTk
-from config.app_config import AppConfig
 from config.constant import USER_NAME, ASSISTANT_NAME, LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY, \
     LAST_SELECTED_TREE_ID_NAME
 from db.content_data_access import ContentDataAccess
-from db.dialogue_data_access import DialogueDataAccess
 from db.models import Dialogue
 from event.editor_tree_manager import EditorTreeManager
 from event.event_bus import event_bus
@@ -15,8 +13,11 @@ from service.content_service import ContentService
 from ui.editor_directory_tree import EditorDirectoryTree
 from ui.scrollable_frame import ScrollableFrame
 from util import image_util
+from util.config_manager import ConfigManager
 from util.image_viewer import ImageViewer
 from util.window_util import center_window
+from widget.confirm_dialog import ConfirmDialog
+from widget.custom_confirm_dialog import CustomConfirmDialog
 
 
 class ListEditor:
@@ -32,12 +33,10 @@ class ListEditor:
         self.edit_window = None
         self.item_data = None
         self.parent = main_window.root
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
         self.main_window = main_window
         self.list_tree = main_window.display_frame.tree
         self.content_service = ContentService()
-        self.app_config = AppConfig()
+        self.config_manager = ConfigManager()
         self.context_menu = Menu(self.parent, tearoff=0)
         self.context_menu.add_command(label="复制到", command=lambda: self.move_or_copy_selected_item(is_move=False))
         self.context_menu.add_command(label="移动到", command=lambda: self.move_or_copy_selected_item(is_move=True))
@@ -80,9 +79,6 @@ class ListEditor:
         data = self.content_service.load_data(content_id)
         return data
 
-    def update_item_data(self, content_id, type, describe, content):
-        self.content_service.update_data(content_id, type, describe, content)
-
     def center_window(self, window, width, height):
         parent_width = self.parent.winfo_width()
         parent_height = self.parent.winfo_height()
@@ -104,25 +100,32 @@ class ListEditor:
     def move_or_copy_selected_item(self, is_move):
         self.close_and_clear_data()
         self.top = tk.Toplevel(self.parent)
-        if is_move:
-            self.top.title("选择移动到的层级")
-        else:
-            self.top.title("选择复制到的层级")
+
+
         self.top.geometry("300x300")
+
         self.top.grab_set()
-        center_window(self.top, 300, 300)
+        center_window(self.top,self.parent, 300, 300)
         editor_directory_tree = EditorDirectoryTree(self.top)
         self.tree = editor_directory_tree.tree
-        button_frame = tk.Frame(self.top)
+        button_frame = ttk.Frame(self.top)
         button_frame.pack(side=tk.BOTTOM, anchor='se', pady=10)
+
+        self.submit_button = tk.Button(button_frame, text="确定", width=6,
+                                       command=lambda: self.move_or_copy_selected(is_move, content_ids, tree_id))
+        self.submit_button.pack(side=tk.RIGHT, padx=(5, 10))
         cancel_button = tk.Button(button_frame, text="取消", width=6, command=self.close_and_clear_data)
         cancel_button.pack(side=tk.RIGHT, padx=5)
         content_ids, tree_id = self.get_selected_list_content_ids_and_tree_id()
-        self.submit_button = tk.Button(button_frame, text="确定", width=6,
-                                       command=lambda: self.move_or_copy_selected(is_move, content_ids, tree_id))
-        self.submit_button.pack(side=tk.RIGHT, padx=5)
         top_id = self.tree.get_children()
         EditorTreeManager(self.parent, editor_directory_tree, top_id, tree_id)
+        if is_move:
+            self.top.title("选择移动到的层级")
+            self.top.iconbitmap("res/icon/move.ico")
+
+        else:
+            self.top.title("选择复制到的层级")
+            self.top.iconbitmap("res/icon/copy.ico")
 
     def move_or_copy_selected(self, is_move, content_ids, tree_id):
         selected_tree_items = self.tree.selection()
@@ -139,15 +142,15 @@ class ListEditor:
                                       lambda: self.content_service.copy_to_target_tree(content_ids, target_tree_id))
             self.close_and_clear_data()
         else:
-            messagebox.showwarning("警告", "请先选择一个层级。")
+            CustomConfirmDialog(parent = self.parent, title="警告", message="请先选择一个层级")
 
     def get_selected_list_content_ids_and_tree_id(self):
         selected_items = self.list_tree.selection()
-        selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
+        selected_tree_id = self.config_manager.get(LAST_SELECTED_TREE_ID_NAME)
         result = []
         for item in selected_items:
             list_item_values = self.list_tree.item(item, 'values')
-            if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+            if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
                 content_id = list_item_values[0]
             else:
                 content_id = list_item_values[1]
@@ -169,10 +172,11 @@ class ListEditor:
         edit_window = Toplevel(self.parent)
         edit_window.title("编辑项")
         edit_window.geometry("600x500")
+
         self.edit_window = edit_window
         self.center_window(edit_window, 600, 500)
         button_frame = Frame(edit_window)
-        button_frame.pack(side=BOTTOM, anchor=E, padx=10, pady=10)
+        button_frame.pack(side=BOTTOM, anchor=E, padx=20, pady=(15,15))
 
         def on_confirm():
             update_datas = []
@@ -207,36 +211,41 @@ class ListEditor:
                 )
                 update_datas.append(user_dialogue)
                 update_datas.append(assistant_dialogue)
-            with ContentDataAccess() as cda:
+
                 self.content_service.update_data(content_id, None, describe=describe, content=None,
                                                  img_path=first_img_path, dialogues=update_datas)
-                with DialogueDataAccess() as dda:
-                    self.content_service.batch_update_dialogue_data(update_datas)
+                self.content_service.batch_update_dialogue_data(update_datas)
             event_bus.publish("UpdateListSingleItem", content_id=content_id, item_id=self.selected_item_id)
             self.close_window()
+        edit_window.iconbitmap("res/icon/edit.ico")
 
         def on_cancel():
             self.close_window()
 
-        confirm_button = Button(button_frame, text="确定", width=10, command=on_confirm)
-        confirm_button.pack(side=LEFT, padx=5)
         cancel_button = Button(button_frame, text="取消", width=10, command=on_cancel)
         cancel_button.pack(side=LEFT, padx=5)
+        confirm_button = Button(button_frame, text="保存", width=10, command=on_confirm)
+        confirm_button.pack(side=LEFT, padx=(5, 0))
         self.description_frame = Frame(edit_window)
-        self.description_frame.pack(side=TOP, anchor=E, padx=(10, 10), pady=10, fill=tk.X)
-        label_font = font.Font(family="Helvetica", size=10, weight="bold")
-        description_label = tk.Label(self.description_frame, text="描述:", font=label_font, fg="#333333")
+        self.description_frame.pack(side=TOP, anchor=E, padx=20, pady=(10, 0), fill=tk.X)
+
+        separator_frame = ttk.Frame(edit_window, borderwidth=0, relief=tk.RAISED)
+        separator = ttk.Separator(edit_window, orient="horizontal")
+        separator.pack(fill="x", padx=20, pady=(14, 5))
+        separator_frame.pack(side=TOP, fill="x", padx=10)
+        label_font = font.Font(family="Microsoft YaHei UI", size=10, weight="bold")
+        description_label = tk.Label(self.description_frame, text="描述", font=label_font, fg="#333333")
         description_label.pack(side=TOP, anchor=W)
         selected_item = self.list_tree.selection()[0]
         list_item_values = self.list_tree.item(selected_item, 'values')
-        if self.app_config.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
+        if self.config_manager.get(LAST_TYPE_OPTION_KEY_NAME, TYPE_OPTION_TXT_KEY) == TYPE_OPTION_TXT_KEY:
             content_id = list_item_values[0]
         else:
             content_id = list_item_values[1]
         hidden_content_id_label = Label(self.description_frame, text=content_id,
                                         fg=self.description_frame.cget('bg'))
         hidden_content_id_label.pack_forget()
-        self.style.configure("Custom.DESCRIBE.INPUT", padding=(3, 3))
+        # self.style.configure("Custom.DESCRIBE.INPUT", padding=(3, 3))
         self.describe_input = tk.Text(self.description_frame, height=1, padx=5, pady=5)
         self.describe_input.pack(side=tk.TOP, fill=tk.X)
         self.describe_input.config(font=("Microsoft YaHei", 10))
@@ -248,35 +257,40 @@ class ListEditor:
         self.describe_input.insert("1.0", data.describe)
         self.item_data = data
         if data and len(data.dialogues) > 0:
-            label_font = font.Font(family="Helvetica", size=10, weight="bold")
-            content_label = tk.Label(edit_window, text="对话:", font=label_font, fg="#333333")
-            content_label.pack(side=TOP, anchor=W, padx=10, pady=0)
+            label_font = font.Font(family="Microsoft YaHei UI", size=10, weight="bold")
+            content_label = tk.Label(edit_window, text="对话", font=label_font, fg="#333333")
+            content_label.pack(side=TOP, anchor=W, padx=20, pady=0)
             frame = ScrollableFrame(edit_window)
-            self.set_dialogue_list(data.dialogues, frame.scrollable_frame)
             frame.pack(fill=tk.BOTH, expand=True)
+            self.set_dialogue_list(data.dialogues, frame.scrollable_frame)
+
 
     def set_dialogue_list(self, data, scrollable_frame):
         for index in range(0, len(data), 2):
             content_frame = Frame(scrollable_frame)
-            content_frame.pack(side=TOP, anchor=W, fill=tk.X, padx=10, pady=(10, 30))
+            if index == 0:
+                pady_top = 0
+            else:
+                pady_top = 10
+            content_frame.pack(side=TOP, anchor=W, fill=tk.X, padx=20, pady=(pady_top, 10))
             self.dialogue_frames.append(content_frame)
             content_right_frame = Frame(content_frame)
             content_right_frame.pack(side=RIGHT, anchor=E, fill=tk.Y)
             select_item_button = Button(content_right_frame, text="保留", fg="#228B22",
-                                        command=lambda cf=content_frame: self.keep_only(cf, select_item_button))
-            select_item_button.pack(side=TOP, anchor=NE, padx=10)
+                                        command=lambda cf=content_frame: self.keep_only(cf))
+
             if len(data) < 4:
                 select_item_button.config(state=tk.DISABLED)
             delete_item_button = Button(content_right_frame, text="删除", fg="#B22222",
-                                        command=lambda cf=content_frame: self.delete_frame(cf, select_item_button))
-            delete_item_button.pack(side=tk.BOTTOM, anchor=SE, padx=10)
+                                        command=lambda cf=content_frame: self.delete_frame(cf))
+            select_item_button.pack(side=BOTTOM, anchor=NE, padx=(10, 0), pady=1)
+            delete_item_button.pack(side=tk.BOTTOM, anchor=SE, padx=(10, 0), pady=10)
             content_left_frame = Frame(content_frame)
             content_left_frame.pack(side=LEFT, anchor=W, fill=tk.X, expand=True)
             hidden_user_id_label = Label(content_frame, text=data[index].id)
             hidden_user_id_label.pack_forget()
             hidden_assistant_id_label = Label(content_frame, text=data[index + 1].id)
             hidden_assistant_id_label.pack_forget()
-            self.style.configure("Custom.DIALOGUE.USER.INPUT", padding=(3, 3))
             dialogue_user_input = Text(content_left_frame, width=30, height=1, padx=5, pady=5)
             dialogue_user_input.pack(side=tk.TOP, fill=tk.X)
             dialogue_user_input.config(font=("Microsoft YaHei", 10))
@@ -298,7 +312,6 @@ class ListEditor:
                 image_label.pack(side=LEFT, pady=5, fill=tk.BOTH)
                 self.dialogue_image_labels.append(image_label)
                 image_viewer = ImageViewer(self.parent)
-                print(f"img_path before {img_path}")
                 image_label.bind("<Double-Button-1>",
                                  lambda e, image_path=img_path: image_viewer.on_image_double_click(e, image_path,
                                                                                                    self.parent))
@@ -307,7 +320,8 @@ class ListEditor:
                 'assistant_id_label': hidden_assistant_id_label,
                 'assistant_image_path_label': hidden_assistant_img_path_label,
                 'user_input': dialogue_user_input,
-                'assistant_input': dialogue_assistant_input
+                'assistant_input': dialogue_assistant_input,
+                'keep_only_button': select_item_button
             }
 
     def get_valid_data_count(self):
@@ -319,33 +333,28 @@ class ListEditor:
                 count += 1
         return count
 
-    def delete_frame(self, frame, select_item_button):
+    def delete_frame(self, frame):
         frame.pack_forget()
-        self.check_and_set_button_state(select_item_button)
+        self.check_and_set_button_state()
 
-    def check_and_set_button_state(self, select_item_button):
+    def check_and_set_button_state(self):
         valid_data_count = self.get_valid_data_count()
         if valid_data_count < 2:
-            select_item_button.config(state=tk.DISABLED)
+            for content_frame in self.dialogue_frames:
+                keep_only_button = content_frame.widgets['keep_only_button']
+                keep_only_button.config(state=tk.DISABLED)
 
-    def keep_only(self, frame_to_keep, select_item_button):
-        select_item_button.config(state=tk.DISABLED)
-        response = messagebox.askyesno(
-            "Confirm",
-            "确定需要保留该项删除其他项?",
-            parent=self.edit_window
-        )
-        if response:
-            for frame in self.dialogue_frames:
-                if frame != frame_to_keep:
-                    frame.pack_forget()
-        else:
-            pass
+
+    def keep_only(self, frame_to_keep):
+        for frame in self.dialogue_frames:
+            if frame != frame_to_keep:
+                frame.pack_forget()
+        self.check_and_set_button_state()
 
     def remove_selected_item(self):
         selected_items = self.list_tree.selection()
-        result = messagebox.askyesno("删除数据", "确定需要删除所选数据吗?")
-        if result:
+        dialog = ConfirmDialog(parent=self.parent, title="删除数据", message="确定要删除所选数据吗?")
+        if dialog.result:
             with ContentDataAccess() as cda:
                 for item in selected_items:
                     values = self.list_tree.item(item, 'values')
