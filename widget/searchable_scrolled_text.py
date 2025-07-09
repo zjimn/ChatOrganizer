@@ -28,8 +28,8 @@ class SearchableScrolledText(ttk.Frame):
         self.query = ""  # Initialize query variable to store the search text
 
         # Tag configurations
-        self.output_text.tag_config("highlight", background="blue", foreground="white", font=("微软雅黑", 15, "bold"))
-        self.output_text.tag_config("current_highlight", background="yellow", foreground="black", font=("微软雅黑", 16, "bold"))
+        self.output_text.tag_config("highlight", background="blue", foreground="white", font=("Microsoft YaHei UI", 15, "bold"))
+        self.output_text.tag_config("current_highlight", background="yellow", foreground="black", font=("Microsoft YaHei UI", 16, "bold"))
 
         # Initialize buttons for navigation
         self.prev_button = None

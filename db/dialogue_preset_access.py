@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy.exc import SQLAlchemyError
 from db.database import Session
 from db.models import DialoguePreset
+from util.logger import logger
 
 
 class DialoguePresetAccess:

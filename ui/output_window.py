@@ -7,12 +7,12 @@ from widget.searchable_scrolled_text import SearchableScrolledText
 class OutputWindow:
     def __init__(self, parent):
         self.output_window = tk.Toplevel(parent)
-        self.output_window.title("")
+        self.output_window.title("对话")
         self.output_window.wm_attributes("-topmost", 1)
         self.output_window.withdraw()
         x = parent.winfo_x()
         y = parent.winfo_y()
-        self.output_window.geometry(f"{800}x{630}+{x + 50}+{y + 50}")
+        self.output_window.geometry(f"{800}x{563}+{x + 50}+{y + 50}")
         self.output_frame = ttk.Frame(self.output_window)
         self.output_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 20))
         self.output_window_canvas = tk.Canvas(self.output_frame, bg="#f0f0f0", width=600)
@@ -30,3 +30,4 @@ class OutputWindow:
         self.output_text = self.text_component.output_text
         self.output_text.config(font=("Microsoft YaHei", 12), padx=10, pady=10)
         self.text_component.pack_forget()
+        self.output_window.iconbitmap("res/icon/display.ico")

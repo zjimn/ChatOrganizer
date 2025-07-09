@@ -6,6 +6,7 @@ from util.config_manager import ConfigManager
 class MainManager:
     def __init__(self, main_window):
         self.selected_tree_id = None
+        self.main_window = main_window
         self.root = main_window.root
         self.config_manager = ConfigManager()
         self.root.update_idletasks()
@@ -22,3 +23,6 @@ class MainManager:
     def bind_events(self):
         self.root.protocol("WM_DELETE_WINDOW", self.on_close_main_window)
         event_bus.subscribe('TreeItemPress', self.on_press_tree_item)
+
+    def update(self):
+        self.main_window.root.update()

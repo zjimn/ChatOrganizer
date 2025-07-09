@@ -2,10 +2,13 @@ import datetime
 import logging
 import os
 from pathlib import Path
+from tkinter import messagebox
+
 import colorlog
 from logging.handlers import RotatingFileHandler
 from colorama import Fore, Style
 
+from config.constant import LOG_FILENAME
 from util.config_manager import ConfigManager
 
 
@@ -32,11 +35,11 @@ class Logger:
         if not default_log_dir.exists():
             default_log_dir.mkdir(parents=True, exist_ok=True)
         self.enable_log = self.config_manager.get("log_state", False)
-        self.log_file = "log.log"
+        self.log_file = LOG_FILENAME
         self.log_full_file = os.path.join(log_file_path, self.log_file)
         self.log_full_file = os.path.normpath(self.log_full_file)
         self.max_file_size = 5 * 1024 * 1024
-        self.log_level = "INFO"
+        self.log_level = "DEBUG"
         self.show_debug = True
 
         if self.enable_log:
@@ -44,7 +47,7 @@ class Logger:
 
     def _setup_logging(self):
         if self.show_debug:
-            self.log_level = 'INFO'
+            self.log_level = 'DEBUG'
 
         formatter = colorlog.ColoredFormatter(
             '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
@@ -80,29 +83,32 @@ class Logger:
             logger.removeHandler(logger.handlers[0])
 
     def log(self, level, message):
-        if not self.enable_log or not self.log_full_file:
-            return
-        if level == 'debug' and self.config_manager.get("debug_log_state", False):
-            logging.debug(message)
-            self.log_message(level, message)
-        elif level == 'info' and self.config_manager.get("info_log_state", True):
-            logging.info(message)
-            self.log_message(level, message)
-        elif level == 'request' and self.config_manager.get("request_log_state", True):
-            logging.info(message)
-            self.log_message(level, message)
-        elif level == 'response' and self.config_manager.get("response_log_state", True):
-            logging.info(message)
-            self.log_message(level, message)
-        elif level == 'warning' and self.config_manager.get("warn_log_state", True):
-            logging.warning(message)
-            self.log_message(level, message)
-        elif level == 'error' and self.config_manager.get("error_log_state", True):
-            logging.error(message)
-            self.log_message(level, message)
-        elif level == 'critical' and self.config_manager.get("critical_log_state", False):
-            logging.critical(message)
-            self.log_message(level, message)
+        try:
+            if not self.enable_log or not self.log_full_file:
+                return
+            if level == 'debug' and self.config_manager.get("debug_log_state", False):
+                logging.debug(message)
+                self.log_message(level, message)
+            elif level == 'info' and self.config_manager.get("info_log_state", True):
+                logging.info(message)
+                self.log_message(level, message)
+            elif level == 'request' and self.config_manager.get("request_log_state", True):
+                logging.info(message)
+                self.log_message(level, message)
+            elif level == 'response' and self.config_manager.get("response_log_state", True):
+                logging.info(message)
+                self.log_message(level, message)
+            elif level == 'warning' and self.config_manager.get("warn_log_state", True):
+                logging.warning(message)
+                self.log_message(level, message)
+            elif level == 'error' and self.config_manager.get("error_log_state", True):
+                logging.error(message)
+                self.log_message(level, message)
+            elif level == 'critical' and self.config_manager.get("error_log_state", False):
+                logging.critical(message)
+                self.log_message(level, message)
+        except Exception as e:
+            messagebox.showerror("错误", "日志记录异常")
 
     def log_message(self, level, message):
         current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]
@@ -118,6 +124,8 @@ class Logger:
         if level == 'warning':
             print(Fore.YELLOW + log_info + Style.RESET_ALL)
         if level == 'error':
+            print(Fore.RED + log_info + Style.RESET_ALL)
+        if level == 'critical':
             print(Fore.RED + log_info + Style.RESET_ALL)
 
 

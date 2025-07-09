@@ -36,6 +36,16 @@ class TokenManager:
             self.conversation_txt_history.pop()
             self.conversation_txt_history.pop()
 
+    def remove_recent_history(self):
+        for i in range(len(self.conversation_txt_history) - 1, -1, -1):
+            if self.conversation_txt_history[i].get('recent', False):
+                del self.conversation_txt_history[i]
+
+    def sign_history_recent_false(self):
+        for i in range(len(self.conversation_txt_history) - 1, -1, -1):
+            if self.conversation_txt_history[i].get('recent', False):
+                del self.conversation_txt_history[i]['recent']
+
     def reset_history_limit(self):
         self.history_limit = self.default_history_limit
 
@@ -54,8 +64,8 @@ class TokenManager:
         self.set_token_limit(0)
         self.set_history_limit(0)
 
-    def add_txt_message(self, role, content):
-        self.conversation_txt_history.append({"role": role, "content": content})
+    def add_txt_message(self, role, content, recent = False):
+        self.conversation_txt_history.append({"role": role, "content": content, "recent": recent})
         self.manage_txt_history()
 
     def add_img_message(self, action, content):

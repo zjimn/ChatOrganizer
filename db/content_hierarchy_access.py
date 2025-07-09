@@ -126,6 +126,18 @@ class ContentHierarchyDataAccess:
             self.session.rollback()
             logger.log('error', e)
 
+    def delete_preset_by_preset_id(self, preset_id: int) -> None:
+        try:
+            data_list = self.session.query(ContentHierarchy).filter(ContentHierarchy.preset_id == preset_id,
+                                                               ContentHierarchy.delete_time.is_(None)).all()
+            for data in data_list:
+                if data:
+                    data.preset_id = None
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            logger.log('error', e)
+
     def delete_data(self, child_id: int) -> None:
         try:
             def update_record_and_children(record_id):

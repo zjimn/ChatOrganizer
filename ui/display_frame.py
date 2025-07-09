@@ -42,7 +42,7 @@ class DisplayFrame:
         self.tree = None
 
         self.style.configure('Txt.List.Treeview',
-                             rowheight=50, font=("微软雅黑", 12),
+                             rowheight=50, font=("Microsoft YaHei UI", 12),
                              padding=(5, 10, 5, 10),
                              fieldbackground='white',
                              bordercolor='#cccccc',
@@ -54,7 +54,7 @@ class DisplayFrame:
                              borderwidth=0,
                              relief='flat',
                              padding=(10, 10, 10, 10),
-                             font=('微软雅黑', 15, 'bold'),
+                             font=('Microsoft YaHei UI', 15, 'bold'),
                              background='#f0f0f0',
                              foreground='#232323'
                              )
@@ -76,7 +76,7 @@ class DisplayFrame:
         self.style_manager.configure_text_style()
         self.tree = self.txt_tree
         self.style.configure('Img.List.Treeview',
-                             rowheight=95, font=("微软雅黑", 12),
+                             rowheight=95, font=("Microsoft YaHei UI", 12),
                              padding=(5, 10, 5, 10),
                              fieldbackground='white',
                              bordercolor='#cccccc',
@@ -88,7 +88,7 @@ class DisplayFrame:
                              borderwidth=0,
                              relief='flat',
                              padding=(10, 20, 10, 20),
-                             font=('微软雅黑', 15, 'bold'),
+                             font=('Microsoft YaHei UI', 15, 'bold'),
                              background='#f0f0f0',
                              foreground='#232323'
                              )

@@ -9,7 +9,8 @@ class CancelManager:
 
     @staticmethod
     def remove_running(thread_id):
-        CancelManager.running_threads.remove(thread_id)
+        if thread_id in CancelManager.running_threads:
+            CancelManager.running_threads.remove(thread_id)
 
     @staticmethod
     def remove_all_running():

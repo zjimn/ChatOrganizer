@@ -64,6 +64,8 @@ class PresetViewerManager:
     def open(self):
         center_window(self.preset_viewer_window, self.parent,self.preset_viewer.win_width, self.preset_viewer.win_height)
         self.preset_viewer_window.deiconify()
+        if self.detail_window:
+            self.detail_window.destroy()
 
     def show_context_menu(self, event):
         try:
@@ -79,7 +81,7 @@ class PresetViewerManager:
         try:
             current_sel = self.preset_viewer.listbox.curselection()
             if current_sel and len(current_sel) > 0:
-                dialog = ConfirmDialog(title="提示", message="确认删除所选?")
+                dialog = ConfirmDialog(title="删除", message="确定删除所选?")
                 if dialog.result:
                     self.preset_viewer.listbox.delete(current_sel[0])
                     self.dialogue_preset_service.delete_data(self.dialogue_preset_data[current_sel[0]].id)
@@ -93,23 +95,21 @@ class PresetViewerManager:
         current_name = self.preset_viewer.listbox.get(current_sel)
         max_history_count = 0
         # max_history_count = self.dialogue_preset_data[current_sel[0]].max_history_count
-        self.display_detail(self.dialogue_preset_data[current_sel[0]].id, current_name, max_history_count)
+        self.display_detail(self.dialogue_preset_data[current_sel[0]].id, current_name, max_history_count, title = "编辑预设")
 
     def on_add(self):
-        self.display_detail()
+        self.display_detail(title = "添加预设")
 
-    def display_detail(self, id = None, name = None, max_history_count = 0):
-        win_width = 373
-        win_height = 250
+    def display_detail(self, id = None, name = None, max_history_count = 0, title = None):
+        win_width = self.preset_viewer.win_width
+        win_height = self.preset_viewer.win_height
         if self.detail_window:
             self.detail_window.destroy()
         self.detail_window = tk.Toplevel(self.preset_viewer_window)
-        self.detail_window.title("预设编辑")
+        self.detail_window.title(title)
         self.detail_window.geometry(f"{win_width}x{win_height}")
         self.detail_window.transient(self.preset_viewer_window)
         right_window(self.detail_window, self.preset_viewer_window, win_width, win_height, padx = 5)
-        # main_window.resizable(False, False)
-        # self.main_window.attributes('-topmost', True)
         name =""
         dpd = DialoguePresetDetail()
         detail =[dpd]
@@ -123,7 +123,7 @@ class PresetViewerManager:
         top_frame = ttk.Frame(main_frame, borderwidth=0, relief=tk.RAISED)
         hidden_preset_id_label = ttk.Label(top_frame, text=id, font=("Microsoft YaHei UI", 10))
         hidden_preset_id_label.pack_forget()
-        title_label = ttk.Label(top_frame, text="名称: ", font=("Microsoft YaHei UI", 10))
+        title_label = ttk.Label(top_frame, text="名称", font=("Microsoft YaHei UI", 10))
         title_label.pack(side = tk.LEFT, padx=(10, 5), pady=5)
 
         top_frame.title_name_text_var = tk.StringVar(value=name)
@@ -163,7 +163,7 @@ class PresetViewerManager:
 
         detail_label_frame = ttk.Frame(main_frame)
         detail_label_frame.pack(side = tk.TOP, fill=tk.X, padx=(0, 0), pady=(0, 0))
-        detail_label = ttk.Label(detail_label_frame, text="内容: ", font=("Microsoft YaHei UI", 10))
+        detail_label = ttk.Label(detail_label_frame, text="内容", font=("Microsoft YaHei UI", 10, "bold"))
         detail_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
         input_body_frame = ttk.Frame(main_frame)
@@ -181,6 +181,7 @@ class PresetViewerManager:
         save_button.config(command= lambda window = self.detail_window, il = hidden_preset_id_label, tl = title_name_text, dl = input_body_frame: self.save_preset_detail(window, il, tl, dl))
         self.load_detail(detail, self.detail_window, items_height, input_body_frame)
         self.display_max_history_slider(self.max_history_toggle_button.get_state(), max_history_count)
+        self.detail_window.iconbitmap("res/icon/edit.ico")
 
     def on_max_history_toggle_change(self, event):
         state = self.max_history_toggle_button.get_state()

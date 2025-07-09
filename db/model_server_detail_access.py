@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from db.database import Session
@@ -33,7 +34,7 @@ class ModelServerDetailAccess:
             logger.log('error', e)
             return []
 
-    def upsert(self, server_key: str, txt_model_id: str = None, img_model_id: str = None, api_key: str = None, api_url: str = None) -> None:
+    def upsert(self, server_key: str, txt_model_id: str = None, img_model_id: str = None, api_key: str = None, api_url: str = None, test_model_name: str = None) -> None:
         try:
             data = self.session.query(ModelServerDetail).filter(ModelServerDetail.server_key == server_key, ModelServerDetail.delete_time.is_(None)).one_or_none()
             if not data:
@@ -47,6 +48,8 @@ class ModelServerDetailAccess:
                     data.api_key = api_key
                 if api_url is not None:
                     data.api_url = api_url
+                if test_model_name is not None:
+                    data.test_model_name = test_model_name
                 self.session.add(data)
                 self.session.commit()
             else:
@@ -54,11 +57,46 @@ class ModelServerDetailAccess:
                     data.txt_model_id = txt_model_id
                 if img_model_id is not None:
                     data.img_model_id = img_model_id
-                if api_key:
+                if api_key is not None:
                     data.api_key = api_key
-                if api_url:
+                if api_url is not None:
                     data.api_url = api_url
                 self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            logger.log('error', f"Failed to upsert data for server_key {server_key}: {e}")
+
+
+    def update_txt_model(self, server_key: str, txt_model_id: str) -> None:
+        try:
+            data = self.session.query(ModelServerDetail).filter(ModelServerDetail.server_key == server_key, ModelServerDetail.delete_time.is_(None)).one_or_none()
+            data.txt_model_id = txt_model_id
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            logger.log('error', f"Failed to upsert data for server_key {server_key}: {e}")
+
+
+    def remove_model(self, model_id: int) -> None:
+        try:
+            data = self.session.query(ModelServerDetail).filter(or_(ModelServerDetail.txt_model_id == model_id), ModelServerDetail.delete_time.is_(None)).all()
+            for item in data:
+                item.txt_model_id = None
+            self.session.commit()
+            data = self.session.query(ModelServerDetail).filter(or_(ModelServerDetail.img_model_id == model_id), ModelServerDetail.delete_time.is_(None)).all()
+            for item in data:
+                item.img_model_id = None
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            logger.log('error', f"Failed to remove model data for model_id {model_id}: {e}")
+
+
+    def update_img_model(self, server_key: str, img_model_id: str) -> None:
+        try:
+            data = self.session.query(ModelServerDetail).filter(ModelServerDetail.server_key == server_key, ModelServerDetail.delete_time.is_(None)).one_or_none()
+            data.img_model_id = img_model_id
+            self.session.commit()
         except Exception as e:
             self.session.rollback()
             logger.log('error', f"Failed to upsert data for server_key {server_key}: {e}")

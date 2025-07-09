@@ -18,7 +18,7 @@ class TreeManager:
         self.current_item = None
         self.main_window = main_window
         self.tree_view = main_window.directory_tree.tree
-        self.app_config = ConfigManager()
+        self.config_manager = ConfigManager()
         self._setup_context_menu()
         self.update_tree_from_db()
         self.dragged_item = None
@@ -42,6 +42,16 @@ class TreeManager:
             self.tree_view.item(self.current_item, tags=("normal",))
         self.current_item = item
         if item:
+            is_top_node = self.tree_service.is_top_node(item)
+            exist_preset = self.tree_service.exist_preset(item)
+            if is_top_node:
+                self.context_menu.entryconfig("删除节点", state=tk.DISABLED)
+            else:
+                self.context_menu.entryconfig("删除节点", state=tk.NORMAL)
+            if not exist_preset:
+                self.context_menu.entryconfig("清除预设", state=tk.DISABLED)
+            else:
+                self.context_menu.entryconfig("清除预设", state=tk.NORMAL)
             self.publish_press_event(item)
             self.tree_view.selection_set(item)
             self.context_menu.post(event.x_root, event.y_root)
@@ -50,14 +60,18 @@ class TreeManager:
         selected_item = self.tree_view.focus()
         tree_name  = self.tree_service.get_name_by_tree_id(selected_item)
         if selected_item:
-            dialog = InputDialog(title="编辑节点", prompt="输入新名称:", init_content=tree_name)
+            dialog = InputDialog(self.root, title="编辑节点", prompt="输入新名称", init_content=tree_name)
             if dialog.result:
                 self.update_item(selected_item, dialog.input_content)
 
     def delete_selected_item(self):
         selected_item = self.tree_view.focus()
+        is_top_node = self.tree_service.is_top_node(selected_item)
+        if is_top_node:
+            CustomConfirmDialog(parent=self.root, title="警告", message="不能删除顶层节点?")
+            return
         if selected_item:
-            dialog = ConfirmDialog(parent=self.root, title="删除节点", message="确定需要删除该节点及下级节点吗?")
+            dialog = ConfirmDialog(parent=self.root, title="删除节点", message="确定要删除该节点及下级节点吗?")
             if dialog.result:
                 previous_item_id = self.get_previous_sibling_or_parent(selected_item)
                 self.delete_item(selected_item)
@@ -91,7 +105,7 @@ class TreeManager:
         if not selected_item:
             CustomConfirmDialog(parent=self.root, title="提示", message="请先选择一个节点")
             return
-        dialog = InputDialog(title="输入节点名称", prompt="输入新增的节点名称:")
+        dialog = InputDialog(parent = self.root, title="新增节点", prompt="输入节点名称")
         if not dialog.result:
             return
         if dialog.input_content:
@@ -134,7 +148,7 @@ class TreeManager:
 
     def set_focus_to_first_item(self):
         first_item = None
-        last_selected_tree_id = self.app_config.get(LAST_SELECTED_TREE_ID_NAME)
+        last_selected_tree_id = self.config_manager.get(LAST_SELECTED_TREE_ID_NAME)
         if last_selected_tree_id is not None and self.tree_view.exists(last_selected_tree_id):
             first_item = last_selected_tree_id
         if first_item is None and len(self.tree_view.get_children()) > 0:
@@ -242,15 +256,15 @@ class TreeManager:
         self.publish_press_event(int(self.dragged_item))
 
     def publish_press_event(self, item):
-        self.app_config.set(LAST_SELECTED_TREE_ID_NAME, item)
-        event_bus.publish("TreeItemPress", tree_id=item)
+        self.config_manager.set(LAST_SELECTED_TREE_ID_NAME, item)
+        event_bus.publish("TreeItemPress", tree_id=int(item))
 
     def on_drag(self, event):
         if self.dragged_item and not self.start_drag:
             item_text = self.tree_view.item(self.dragged_item, 'text')
             if item_text:
                 style = ttk.Style()
-                style.configure("Custom.TLabel", background="#2c3e50", foreground="white", font=("微软雅黑", 12))
+                style.configure("Custom.TLabel", background="#2c3e50", foreground="white", font=("Microsoft YaHei UI", 12))
                 self.floating_label = ttk.Label(self.root, text=item_text)
                 self.floating_label.configure(style="Custom.TLabel")
                 self.start_drag = True

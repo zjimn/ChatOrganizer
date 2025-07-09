@@ -13,8 +13,8 @@ class CustomConfirmDialog:
         message_window.transient()
         message_window.grab_set()
         message_window.title(self.title)
-        #message_window.resizable(False, False)
-        message_window.attributes('-topmost', True)
+
+
         window_width = width
 
         window_height = height
@@ -37,6 +37,9 @@ class CustomConfirmDialog:
         # 创建确认按钮
         close_button = ttk.Button(message_window, text="确定", command=message_window.destroy, width = 10)
         close_button.pack(side=tk.RIGHT, padx=15, pady=(0, 15), anchor=tk.SE)
+        message_window.resizable(False, False)
+        message_window.attributes('-toolwindow', True)
+        message_window.attributes('-topmost', True)
 
 # 示例调用
 if __name__ == "__main__":

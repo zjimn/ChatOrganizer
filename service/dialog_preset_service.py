@@ -1,3 +1,4 @@
+from db.content_hierarchy_access import ContentHierarchyDataAccess
 from db.dialogue_preset_access import DialoguePresetAccess
 from db.dialogue_preset_detail_access import DialoguePresetDetailAccess
 
@@ -46,5 +47,7 @@ class DialoguePresetService:
             return
         with DialoguePresetAccess() as dpa:
             dpa.delete(id)
+            with ContentHierarchyDataAccess() as chda:
+                chda.delete_preset_by_preset_id(id)
             with DialoguePresetDetailAccess() as dpda:
                 dpda.delete_by_preset_id(id)

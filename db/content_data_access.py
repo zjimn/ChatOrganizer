@@ -22,13 +22,14 @@ class ContentDataAccess:
         self.session.close()
 
     def insert_data(self, content_type: str, content_hierarchy_child_id: int, describe: str, content: str,
-                    img_path: str) -> int | None:
+                    img_path: str, query_content:str = None) -> int | None:
         new_data = ContentData(
             type=content_type,
             content_hierarchy_child_id=content_hierarchy_child_id,
             describe=describe,
             content=content,
-            img_path=img_path
+            img_path=img_path,
+            query_content=query_content
         )
         try:
             self.session.add(new_data)
@@ -127,36 +128,12 @@ class ContentDataAccess:
                 )
             )
         else:
-            content_addition_condition = self.parse_expression(search, ContentData, "content")
-            dialogue_addition_condition = self.parse_expression(search, Dialogue, "message")
-            dialogue_ids_query = (
-                self.session.query(Dialogue.content_id)
-                .filter(
-                    # Dialogue.message.like(f"%{search}%"),
-                    Dialogue.delete_time.is_(None),
-                    or_(
-                        content_id is None,
-                        Dialogue.content_id == content_id
-                    ),
-                    and_(
-                        dialogue_addition_condition
-                    )
-
-                )
-                .distinct()
-            )
-            dialogue_ids = dialogue_ids_query.all()
-            dialogue_content_ids = [dialogue[0] for dialogue in dialogue_ids]
+            content_addition_condition = self.parse_expression(search, ContentData, "query_content")
             base_query = (
                 self.session.query(ContentData)
                 .filter(
                     ContentData.type == content_type,
-                    or_(
-                        # ContentData.describe.like(f"%{search}%"),
-
-                        ContentData.id.in_(dialogue_content_ids),
-                        content_addition_condition
-                    ),
+                    content_addition_condition,
                     ContentData.delete_time.is_(None),
                     or_(
                         ContentData.content_hierarchy_child_id.in_(child_ids),
@@ -221,7 +198,7 @@ class ContentDataAccess:
             return []
 
     def update_data(self, data_id: int, content_type: str = None, content_hierarchy_child_id=None, describe: str = None,
-                    content: str = None, img_path: str = None) -> None:
+                    content: str = None, img_path: str = None, query_content: str = None) -> None:
         try:
             data = self.session.query(ContentData).filter(ContentData.id == data_id,
                                                           ContentData.delete_time.is_(None)).one_or_none()
@@ -236,6 +213,8 @@ class ContentDataAccess:
                     data.content = content
                 if img_path is not None:
                     data.img_path = img_path
+                if query_content is not None:
+                    data.query_content = query_content
                 self.session.commit()
             else:
                 logger.log('error', "没有匹配指定id的数据")

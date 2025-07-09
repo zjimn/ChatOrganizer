@@ -14,6 +14,7 @@ from util.config_manager import ConfigManager
 
 class TopBarManager:
     def __init__(self, main_window):
+        self.model_with_comment_options = None
         self.model_server_key = None
         self.model_type = None
         self.dialog_model_data = None
@@ -89,11 +90,11 @@ class TopBarManager:
             if self.model_type == "txt":
                 self.config_manager.set("txt_model_id", model_id)
                 self.config_manager.set("txt_model_name", model_name)
-                self.model_server_detail_service.update_or_insert_data(model_server_key, txt_model_id= model_id)
+                self.model_server_detail_service.update_txt_model(model_server_key, txt_model_id= model_id)
             else:
                 self.config_manager.set("img_model_id", model_id)
                 self.config_manager.set("img_model_name", model_name)
-                self.model_server_detail_service.update_or_insert_data(model_server_key, img_model_id= model_id)
+                self.model_server_detail_service.update_img_model(model_server_key, img_model_id= model_id)
             event_bus.publish("DialogModelChanged", model_name = model_name)
 
     def reload_dialog_preset(self, id = None):
@@ -150,22 +151,30 @@ class TopBarManager:
         for index, item in enumerate(self.dialog_model_data):
             if model_id and item.id == model_id:
                 model_index = index
+        new_with_comment_options = []
+        for item in self.dialog_model_data:
+            name = item.name
+            if item.comment:
+                name = item.name + " (" + item.comment + ")"
+            new_with_comment_options.append(name)
         new_options = [item.name for item in self.dialog_model_data]
         self.model_options = new_options
-        self.model_combobox['values'] = self.model_options
+        self.model_with_comment_options = new_with_comment_options
+        self.model_combobox['values'] = self.model_with_comment_options
         if model_index is None:
             self.model_var.set("")
             event_bus.publish("DialogModelChanged", model_name="")
         if self.model_options and model_index is not None:
             model_name= self.model_options[model_index]
-            self.model_var.set(model_name)
+            model_name_with_comment= self.model_with_comment_options[model_index]
+            self.model_var.set(model_name_with_comment)
             if self.model_type == "txt":
                 self.config_manager.set("txt_model_name", model_name)
             if self.model_type == "img":
                 self.config_manager.set("img_model_name", model_name)
             event_bus.publish("DialogModelChanged", model_name=model_name)
         if len(self.model_options) > 0:
-            max_width = min(50, max(10, max(len(option) for option in self.model_options)))
+            max_width = min(50, max(10, max(len(option) for option in self.model_with_comment_options)))
             self.model_combobox.config(width=max_width)
 
 

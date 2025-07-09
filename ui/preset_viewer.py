@@ -10,7 +10,7 @@ from widget.custom_listbox import CustomListbox
 class PresetViewer:
     def __init__(self, parent):
         self.win_width = 373
-        self.win_height = 250
+        self.win_height = 264
         self.main_window = tk.Toplevel(parent)
         self.main_window.title("预设管理")
         self.main_window.geometry(f"{self.win_width}x{self.win_height}")
@@ -45,6 +45,8 @@ class PresetViewer:
         self.listbox_bottom_frame.pack(side='top', pady=0, fill='both', expand=True)
         self.main_frame.pack(side='left', padx=(5, 5), pady=(0, 0), fill=tk.BOTH, expand=True)
         self.main_window.withdraw()
+        self.main_window.iconbitmap("res/icon/model_preset.ico")
+
 
 
 if __name__ == "__main__":

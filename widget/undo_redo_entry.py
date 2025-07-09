@@ -2,6 +2,9 @@
 import tkinter as tk
 from tkinter import ttk
 
+from util.logger import logger
+
+
 class UndoRedoEntry(ttk.Entry):
     def __init__(self, master=None, placeholder="", **kwargs):
         super().__init__(master, **kwargs)
@@ -9,22 +12,65 @@ class UndoRedoEntry(ttk.Entry):
         self.history_index = 0
         self.bind("<Control-z>", self.safe_undo)  # Ctrl+Z 撤销
         self.bind("<Control-Shift-Z>", self.safe_redo)  # Ctrl+Y 重做
-        self.bind("<Key>", self.record_change)  # 记录每次输入
+        self.bind("<Key>", self.record_change)
+        self.bind("<KeyRelease>", self.record_change)
         self.placeholder = placeholder
-        # self.bind("<FocusIn>", self.on_focus)
-        self.bind("<FocusOut>", self.on_focus_out)
         self.insert(0, self.placeholder)
-        # self.config(foreground='lightgrey')  # 浅色提示文字
+        self.bind("<Button-3>", self.show_context_menu)
+        self.context_menu = tk.Menu(self, tearoff=0, bd=0, relief='flat')
+        self.context_menu.add_command(label="剪切", command=self.cut, state=tk.DISABLED)
+        self.context_menu.add_command(label="复制", command=self.copy, state=tk.DISABLED)
+        self.context_menu.add_command(label="粘贴", command=self.paste, state=tk.DISABLED)
+        # self.context_menu.add_command(label="关闭", command=self.on_close_output_window)
+        self.context_menu.config(borderwidth=0, relief="flat")
+
+    def show_context_menu(self, event):
+        try:
+            self.selection_get()
+            self.context_menu.entryconfig("剪切", state="normal")
+            self.context_menu.entryconfig("复制", state="normal")
+        except tk.TclError:
+            self.context_menu.entryconfig("剪切", state="disabled")
+            self.context_menu.entryconfig("复制", state="disabled")
+        if self.clipboard_get():
+            self.context_menu.entryconfig("粘贴", state="normal")
+        self.context_menu.post(event.x_root, event.y_root)
+
+    def cut(self, event=None):
+        try:
+            selected_text = self.selection_get()
+            self.clipboard_clear()
+            self.clipboard_append(selected_text)
+            self.delete(tk.SEL_FIRST, tk.SEL_LAST)
+            self.update()
+        except tk.TclError as tcle:
+            logger.log("error", f"剪切失败: {tcle}")
+
+    def copy(self, event=None):
+        try:
+            selected_text = self.selection_get()
+            self.clipboard_clear()
+            self.clipboard_append(selected_text)
+            self.update()
+        except tk.TclError as tcle:
+            logger.log("error", f"复制失败: {tcle}")
+
+    def paste(self, event=None):
+        try:
+            clipboard_content = self.clipboard_get()
+            self.insert(tk.INSERT, clipboard_content)
+            self.event_generate("<Key>")
+            self.event_generate("<KeyRelease>")
+            self.event_generate("<<CustomKey>>")
+        except tk.TclError as tcle:
+            logger.log("error", f"粘贴失败: {tcle}")
 
     def record_change(self, event=None):
-        # 获取当前文本内容
         current_text = self.get()
-        # 如果当前内容和历史记录中最新内容不同，则记录
         if current_text != self.history[self.history_index]:
-            # 限制历史记录的长度，避免内存泄漏
             if len(self.history) > 100:
-                self.history.pop(0)  # 移除最旧的记录
-                self.history_index -= 1  # 保证history_index不超出范围
+                self.history.pop(0)
+                self.history_index -= 1
             self.history = self.history[:self.history_index + 1]
             self.history.append(current_text)
             self.history_index += 1
@@ -43,23 +89,6 @@ class UndoRedoEntry(ttk.Entry):
         self.delete(0, tk.END)
         self.insert(0, text)
 
-    # def on_focus(self, event):
-    #     if self.get() == self.placeholder:
-    #         #self.delete(0, tk.END)  # 清除提示文字
-    #         # self.config(foreground='black')  # 设置为黑色字体
-
-    def on_focus_out(self, event):
-        if self.get() == "":
-            self.insert(0, self.placeholder)  # 恢复提示文字
-            # self.config(foreground='lightgrey')  # 恢复为浅色
-
-    def update_placeholder(self, new_placeholder, clean_old = True):
-        self.placeholder = new_placeholder
-        if self.get() == "" or self.get() == self.placeholder or clean_old:
-            self.delete(0, tk.END)
-            self.insert(0, self.placeholder)
-            # self.config(foreground='lightgrey')
-        self.event_generate('<<UpdatePlaceholder>>', when='tail')
 
 # 测试自定义组件
 def main():

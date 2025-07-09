@@ -18,8 +18,8 @@ class ModelServerAccess:
     def __exit__(self, exc_type, exc_value, traceback):
         self.session.close()
 
-    def insert(self, key: str, name: str) -> None:
-        data = ModelServer(key=key, name=name)
+    def insert(self, key: str, name: str, need_api_url: bool, need_api_key: bool) -> None:
+        data = ModelServer(key=key, name=name, need_api_url=need_api_url, need_api_key=need_api_key)
         try:
             self.session.add(data)
             self.session.commit()
@@ -27,10 +27,10 @@ class ModelServerAccess:
             self.session.rollback()
             logger.log('error', e)
 
-    def get_value_by_key(self, key: str, default) -> Optional[ModelServer]:
+    def get_data_by_key(self, key: str) -> Optional[ModelServer]:
         try:
             data = self.session.query(ModelServer).filter(ModelServer.key == key, ModelServer.delete_time.is_(None)).first()
-            return data.value if data and data.value else default
+            return data
         except Exception as e:
             logger.log('error', e)
             return None

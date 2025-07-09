@@ -14,7 +14,7 @@ class DirectoryTree:
         self.left_frame = ttk.Frame(parent, width=100)
         self.style = Style(theme="flatly")
         self.style.configure('Tree.Treeview',
-                             rowheight=40, font=("微软雅黑", 12),
+                             rowheight=40, font=("Microsoft YaHei UI", 12),
                              padding=(5, 10, 5, 10),
                              fieldbackground='white',
                              background='white',

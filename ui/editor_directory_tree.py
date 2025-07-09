@@ -10,7 +10,7 @@ class EditorDirectoryTree:
     def __init__(self, parent):
         self.style = Style(theme="flatly")
         self.style.configure('Editor.Tree.Treeview',
-                             rowheight=25, font=("微软雅黑", 10),
+                             rowheight=25, font=("Microsoft YaHei UI", 10),
                              padding=(5, 10, 5, 10),
                              fieldbackground='white',
                              background='white',

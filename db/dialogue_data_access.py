@@ -16,12 +16,14 @@ class DialogueDataAccess:
     def __exit__(self, exc_type, exc_value, traceback):
         self.session.close()
 
-    def insert_data(self, content_id: int, role: str, message: str, img_path: str = None) -> None:
+    def insert_data(self, content_id: int, role: str, message: str, img_path: str = None, model_name = None, model_id = None) -> None:
         new_data = Dialogue(
             content_id=content_id,
             role=role,
             message=message,
-            img_path=img_path
+            img_path=img_path,
+            model_name=model_name,
+            model_id=model_id,
         )
         try:
             self.session.add(new_data)

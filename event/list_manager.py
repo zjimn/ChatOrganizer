@@ -29,6 +29,7 @@ class ListManager:
         self.set_tree_by_type_option()
         self.pagination_frame = main_window.display_frame.pagination_frame
         self.search_input_entry_text = main_window.display_frame.search_input_entry_text
+        self.search_input_text = main_window.display_frame.search_input_text
         self.search_button = main_window.display_frame.search_button
         self.image_list = []
         self.context_menu = tk.Menu(self.tree, tearoff=0)
@@ -43,6 +44,7 @@ class ListManager:
             "content": False,
             "create_time": True
         }
+        self.check_input_text()
 
     def load_last_sort_order_by(self):
         order_by_column = self.config_manager.get(LAST_LIST_ORDER_BY_COLUMN)
@@ -134,6 +136,17 @@ class ListManager:
             self.update_img_data_items(txt, self.selected_tree_id, content_id=content_id, item_id=item_id,
                                        sort_by=sort_by, sort_order=sort_order)
 
+    def check_input_text(self, event=None):
+        txt = self.search_input_entry_text.get()
+        check_result = True
+        if not txt:
+            check_result = False
+        if check_result:
+            self.search_button.config(state=tk.NORMAL)
+        else:
+            self.search_button.config(state=tk.DISABLED)
+        return check_result
+
     def get_tag(self, index):
         return 'odd' if index % 2 == 0 else 'even'
 
@@ -194,10 +207,12 @@ class ListManager:
                 img_path = record.img_path
                 img_tk = open_img_replace_if_error(img_path, '', (None, 80))
                 self.image_list.append(img_tk)
+
                 new_values = (
+                    "",
                     record.id,
-                    record.describe,
                     record.img_path,
+                    record.describe,
                     record.create_time.strftime('%Y-%m-%d %H:%M'),
                 )
                 self.tree.item(item_id, image=img_tk, values=new_values)
@@ -378,3 +393,6 @@ class ListManager:
         event_bus.subscribe('UpdateListSingleItem', self.update_list_single_item)
         self.main_window.display_frame.prev_button.bind("<Button-1>", self.previous_page)
         self.main_window.display_frame.next_button.bind("<Button-1>", self.next_page)
+        self.search_input_text.bind("<Key>", self.check_input_text)
+        self.search_input_text.bind("<<CustomKey>>", self.check_input_text)
+        self.search_input_text.bind("<KeyRelease>", self.check_input_text)

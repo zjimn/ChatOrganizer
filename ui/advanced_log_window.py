@@ -9,7 +9,7 @@ from widget.icon_toggle_button import IconToggleButton
 
 
 class AdvancedLogWindow:
-    def __init__(self, root):
+    def __init__(self, setting_window, root):
         self.win_width = 270
         self.win_height = 300
         self.root = root
@@ -38,7 +38,7 @@ class AdvancedLogWindow:
         debug_log_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
         self.debug_log_toggle_button = IconToggleButton(self.debug_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
         self.debug_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
-        self.debug_log_toggle_button.set_state(True)
+        self.debug_log_toggle_button.set_state(False)
 
         self.info_log_frame = ttk.Frame(self.first_frame, borderwidth=0, relief=tk.RAISED)
         info_log_label = ttk.Label(self.info_log_frame, text="信息", font=("Microsoft YaHei UI", 10))
@@ -70,7 +70,7 @@ class AdvancedLogWindow:
         self.sql_log_toggle_button = IconToggleButton(self.sql_log_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
         self.sql_log_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
         self.sql_log_toggle_button.set_state(True)
-        sql_log_express_label = ttk.Label(self.sql_log_frame, text="(重启后生效)", font=("Microsoft YaHei UI", 9))
+        sql_log_express_label = ttk.Label(self.sql_log_frame, text="(数据库执行记录)", font=("Microsoft YaHei UI", 9))
         sql_log_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
         self.request_log_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
@@ -122,7 +122,7 @@ class AdvancedLogWindow:
         self.cancel_button.pack(side="right", padx=5)
 
         self.main_window.withdraw()
-        # self.main_window.iconbitmap("res/icon/setting.ico")
+        self.main_window.iconbitmap("res/icon/setting.ico")
 
 def main():
     root = tk.Tk()

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from db.database import Base
 
@@ -10,6 +10,7 @@ class ContentData(Base):
     type = Column(String, nullable=False)
     describe = Column(Text)
     content = Column(Text)
+    query_content = Column(Text, nullable=False, default="")
     img_path = Column(String)
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)
@@ -25,6 +26,8 @@ class Dialogue(Base):
     role = Column(String, nullable=False)
     message = Column(Text, nullable=False)
     img_path = Column(String)
+    model_id = Column(Integer, nullable=True)
+    model_name = Column(String, nullable=True)
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)
     content_data = relationship('ContentData', back_populates='dialogues')
@@ -46,6 +49,8 @@ class ModelServer(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
+    need_api_key = Column(Boolean, default=True)
+    need_api_url = Column(Boolean, default=True)
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)
 
@@ -83,6 +88,7 @@ class DialogueModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
     type = Column(String, nullable=False)
+    comment = Column(String, nullable=False)
     server_key = Column(String, nullable=False)
     create_time = Column(DateTime, default=datetime.now)
     delete_time = Column(DateTime, nullable=True, default=None)

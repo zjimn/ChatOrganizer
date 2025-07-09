@@ -16,10 +16,11 @@ class DialogueModelAccess:
     def __exit__(self, exc_type, exc_value, traceback):
         self.session.close()
 
-    def insert_data(self, name: str, type:str, server_key) -> int | None:
+    def insert_data(self, name: str, type:str, server_key, comment:str = '') -> int | None:
         new_data = DialogueModel(
             name=name,
             type=type,
+            comment=comment,
             server_key=server_key
         )
         try:
@@ -61,13 +62,15 @@ class DialogueModelAccess:
             logger.log('error', e)
 
 
-    def update_data(self, id: int, name: str, delete_time) -> None:
+    def update_data(self, id: int, name: str, delete_time, comment: str) -> None:
         try:
             data = self.session.query(DialogueModel).filter(DialogueModel.id == id,
                                                           DialogueModel.delete_time.is_(None)).one_or_none()
             if data:
                 if name is not None:
                     data.name = name
+                if comment is not None:
+                    data.comment = comment
                 if delete_time is not None:
                     data.delete_time = delete_time
                 self.session.commit()

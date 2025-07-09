@@ -1,3 +1,4 @@
+from db.database import set_sql_logging
 from event.event_bus import event_bus
 from util.config_manager import ConfigManager
 from util.logger import Logger, logger
@@ -9,6 +10,7 @@ class AdvancedLogWindowManager:
         self.advanced_log_window = main_window.advanced_log_window
         self.config_manager = ConfigManager()
         self.root = main_window.root
+        self.setting_window = main_window.settings_window.main_window
         self.main_window = self.advanced_log_window.main_window
         self.bind_events()
 
@@ -20,16 +22,17 @@ class AdvancedLogWindowManager:
         self.advanced_log_window.confirm_button.config(command = self.on_confirm)
 
     def open_advanced_log_window(self):
-        self.root.after(100, self.open)
+        self.open()
 
     def open(self):
-        center_window(self.main_window, self.root,self.advanced_log_window.win_width, self.advanced_log_window.win_height)
+        center_window(self.main_window, self.setting_window,self.advanced_log_window.win_width, self.advanced_log_window.win_height)
         self.main_window.deiconify()
-        self.main_window.grab_set()
         self.load_setting()
+        self.setting_window.attributes("-topmost", False)
+        self.main_window.grab_set()
 
     def load_setting(self):
-        debug_log_state = self.config_manager.get("info_log_state", False)
+        debug_log_state = self.config_manager.get("debug_log_state", False)
         info_log_state = self.config_manager.get("info_log_state", True)
         warn_log_state = self.config_manager.get("warn_log_state", True)
         error_log_state = self.config_manager.get("error_log_state", True)
@@ -64,7 +67,7 @@ class AdvancedLogWindowManager:
         self.config_manager.set("sql_log_state", sql_log_state)
         self.config_manager.set("request_log_state", request_log_state)
         self.config_manager.set("response_log_state", response_log_state)
-
+        set_sql_logging(sql_log_state)
         logger.reload_config()
 
     def on_confirm(self):
@@ -72,7 +75,11 @@ class AdvancedLogWindowManager:
         self.config_manager.save()
         self.main_window.grab_release()
         self.main_window.withdraw()
+        self.setting_window.attributes("-topmost", True)
+        self.setting_window.grab_set()
 
     def on_cancel(self):
         self.main_window.grab_release()
         self.main_window.withdraw()
+        self.setting_window.attributes("-topmost", True)
+        self.setting_window.grab_set()

@@ -19,3 +19,7 @@ Session = sessionmaker(bind=engine)
 
 def init_db():
     Base.metadata.create_all(engine)
+
+def set_sql_logging(enable: bool):
+    global engine
+    engine.echo = enable

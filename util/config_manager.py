@@ -4,7 +4,7 @@ import json
 import os
 from tkinter import messagebox
 
-from config.constant import APP_NAME, LOG_FOLDER, IMG_FOLDER
+from config.constant import APP_NAME, LOG_FOLDER, IMG_FOLDER, CONFIG_FILENAME
 from util.file_util import get_documents_directory
 from util.global_variables import GlobalVariables
 
@@ -18,10 +18,10 @@ class ConfigManager:
             cls._instance.__initialized = False
         return cls._instance
 
-    def __init__(self, app_name = APP_NAME, config_filename="config.json"):
+    def __init__(self):
         if self.__initialized:
             return
-        self.config_path = Path(os.getenv("APPDATA")) / app_name / config_filename
+        self.config_path = Path(get_documents_directory()) / APP_NAME / CONFIG_FILENAME
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self.config = self._load_config()
         self._init_default()

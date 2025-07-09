@@ -8,7 +8,7 @@ from util.window_util import center_window
 
 class ModelViewer:
     def __init__(self, parent):
-        self.win_width = 373
+        self.win_width = 450
         self.win_height = 250
         self.parent = parent
         self.main_window = tk.Toplevel(parent)
@@ -24,7 +24,7 @@ class ModelViewer:
         self.top_frame = ttk.Frame(main_frame, borderwidth=0, relief=tk.RAISED)
         hidden_model_id_label = ttk.Label(self.top_frame, text="", font=("Microsoft YaHei UI", 10))
         hidden_model_id_label.pack_forget()
-        detail_label = ttk.Label(self.top_frame, text="(选择添加模型服务对应的模型)", font=("Microsoft YaHei UI", 10))
+        detail_label = ttk.Label(self.top_frame, text="(添加或修改模型服务对应的模型)", font=("Microsoft YaHei UI", 10))
         detail_label.pack(side=tk.LEFT, padx=(10, 10), pady=5)
 
         self.save_button = ttk.Button(self.top_frame, text="保存", state=tk.NORMAL)
@@ -39,7 +39,7 @@ class ModelViewer:
 
         self.detail_label_frame = ttk.Frame(main_frame)
         self.detail_label_frame.pack(side=tk.TOP, fill=tk.X, padx=(0, 0), pady=(10, 0))
-        detail_label = ttk.Label(self.detail_label_frame, text="模型: ", font=("Microsoft YaHei UI", 10))
+        detail_label = ttk.Label(self.detail_label_frame, text="模型", font=("Microsoft YaHei UI", 10, "bold"))
         detail_label.pack(side=tk.LEFT, padx=(10, 10), pady=5)
 
         self.input_body_frame = ttk.Frame(main_frame)
@@ -53,7 +53,7 @@ class ModelViewer:
         main_frame.pack(side='left', padx=(5, 5), pady=(0, 0), fill=tk.BOTH, expand=True)
 
         self.main_window.withdraw()
-
+        self.main_window.iconbitmap("res/icon/model_preset.ico")
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -16,18 +16,32 @@ TOGGLE_BUTTON_CHECK_IMAGE_PATH = "res/icon/toggle_on.png"
 TOGGLE_BUTTON_UNCHECK_IMAGE_PATH = "res/icon/toggle_off.png"
 APP_NAME = "ChatOrganizer"
 LOG_FOLDER = "logs"
+LOG_FILENAME = "log.log"
 IMG_FOLDER = "images"
+CONFIG_FILENAME = "config.json"
+DB_FOLDER = "data"
+DB_FILENAME = "chat_data.db"
 
 OLLAMA_DEFAULT_URL = "http://localhost:11434"
+DEEPBRICKS_OPENAI_DEFAULT_URL = "https://api.deepbricks.ai/v1"
+DEEPSEEK_DEFAULT_URL = "https://api.deepseek.com"
+SILICONFLOW_DEEPSEEK_DEFAULT_URL = "https://api.siliconflow.cn/v1"
 
 TXT_MODEL_TYPE = "txt"
 IMG_MODEL_TYPE = "img"
 
+DEEPSEEK_SERVER_KEY = "deepseek"
+DEEPSEEK_SERVER_NAME = "deepseek"
+
 OLLAMA_SERVER_KEY = "ollama"
 OLLAMA_SERVER_NAME = "ollama"
 
-OPENAI_SERVER_KEY = "openai"
-OPENAI_SERVER_NAME = "openai(deepbricks)"
+DEEPBRICKS_OPENAI_SERVER_KEY = "deepbricks_openai"
+DEEPBRICKS_SERVER_NAME = "openai(DeepBricks)"
 
-DEEPSEEK_SERVER_KEY = "deepseek"
-DEEPSEEK_SERVER_NAME = "deepseek"
+SILICONFLOW_DEEPSEEK_SERVER_KEY = "siliconflow_deepseek"
+SILICONFLOW_DEEPSEEK_SERVER_NAME = "deepseek(SiliconFlow)"
+
+
+GENERAL_OPENAI_SERVER_KEY = "general_openai"
+GENERAL_OPENAI_SERVER_NAME = "general(openai api)"

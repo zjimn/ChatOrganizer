@@ -37,11 +37,11 @@ class InputDialog:
 
 
 
-        yes_button = ttk.Button(button_frame, text=confirm_name, command=self.on_confirm, width=10)
-        yes_button.pack(side="right", padx=10)
+        yes_button = ttk.Button(button_frame, text=confirm_name, command=self.on_confirm, width=9)
+        yes_button.pack(side="right", padx=(5, 10))
 
-        no_button = ttk.Button(button_frame, text=cancel_name, command=self.on_cancel, width=10)
-        no_button.pack(side="left", padx=10)
+        no_button = ttk.Button(button_frame, text=cancel_name, command=self.on_cancel, width=9)
+        no_button.pack(side="left", padx=(10, 5))
 
         # 处理关闭窗口
         self.dialog.protocol("WM_DELETE_WINDOW", self.on_close)

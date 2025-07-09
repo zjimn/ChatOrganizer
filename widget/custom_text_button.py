@@ -54,7 +54,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("Custom Text Button Example")
 
-    custom_button = CustomTextButton(root, text="Click Me", default_color="#0077cc", font=("Arial", 14))
+    custom_button = CustomTextButton(root, text="Click Me", default_color="#0077cc", font=("Microsoft YaHei UI", 14))
     custom_button.pack(pady=20)
 
     root.mainloop()

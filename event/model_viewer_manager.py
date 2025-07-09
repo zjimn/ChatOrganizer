@@ -73,7 +73,7 @@ class ModelViewerManager:
 
     def load_detail(self, detail, window, items_height, input_body_frame):
         for item in detail:
-            self.add_item(items_height, self.model_viewer.input_body_frame, item.id, item.name, True)
+            self.add_item(items_height, self.model_viewer.input_body_frame, item.id, item.name, item.comment, True)
         self.parent.update()
         self.adjust_window_height_based_on_elements(items_height)
 
@@ -92,7 +92,9 @@ class ModelViewerManager:
                 data_id = widget.data_id
                 dm.id = data_id
             name = widget.data_name.get()
+            comment = widget.data_comment.get()
             dm.name = name
+            dm.comment = comment
             dm.delete_time = delete_time
             detail_list.append(dm)
         model_server_key = self.config_manager.get("model_server_key")
@@ -107,21 +109,29 @@ class ModelViewerManager:
         if len([child for child in self.model_viewer.input_body_frame.winfo_children() if child.winfo_ismapped()]) == 0:
             self.model_viewer.input_body_frame.pack_forget()
 
-    def add_item(self, items_height, parent, data_id = None, text = "", adjust_height = True):
+    def add_item(self, items_height, parent, data_id = None, text = "", comment = "", adjust_height = True):
 
         input_frame = ttk.Frame(parent)
         input_frame.pack(side = tk.TOP, fill=tk.X, padx=(0, 0), pady=(5, 5))
-
+        input_frame.name_label = ttk.Label(input_frame, text="名称", font=("Microsoft YaHei UI", 10))
         input_frame.input_text_var = tk.StringVar(value=text)
-        input_text = UndoRedoEntry(input_frame, width=50, style="Custom.TEntry",
+        input_frame.comment_text_var = tk.StringVar(value=comment)
+        input_text = UndoRedoEntry(input_frame, width=20, style="Custom.TEntry",
                                            textvariable=input_frame.input_text_var)
+
+        input_frame.comment_label = ttk.Label(input_frame, text="备注", font=("Microsoft YaHei UI", 10))
+        input_frame.comment_text = UndoRedoEntry(input_frame, width=10, style="Custom.TEntry",
+                                           textvariable=input_frame.comment_text_var)
         delete_button = ttk.Button(input_frame, text="删除", state=tk.NORMAL)
         delete_button.pack(side=tk.RIGHT, padx=(10, 10))
         delete_button.config(command= lambda item = delete_button.master: self.delete_item(items_height, parent, input_frame))
-        input_text.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=(0, 0), expand = True)
+        input_frame.name_label.pack(side=tk.LEFT, fill=tk.X, padx=(10,0), pady=(0, 0), expand = False)
+        input_text.pack(side=tk.LEFT, fill=tk.X, padx=(5,10), pady=(0, 0), expand = True)
+        input_frame.comment_label.pack(side=tk.LEFT, fill=tk.X, padx=(10,0), pady=(0, 0), expand = False)
+        input_frame.comment_text.pack(side=tk.LEFT, fill=tk.X, padx=(5,10), pady=(0, 0))
         input_frame.data_id = data_id
         input_frame.data_name = input_text
-        # parent.update()
+        input_frame.data_comment = input_frame.comment_text
         if adjust_height:
             self.adjust_window_height_based_on_elements(items_height)
         self.model_viewer.input_body_frame.pack(side=tk.TOP, fill=tk.X, padx=(0, 0), pady=(0, 10))

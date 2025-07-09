@@ -60,19 +60,27 @@ class InputManager:
             self.set_submit_button_init_state(False)
             self.root.event_generate('<<SubmitRequest>>')
         else:
-            self.root.event_generate('<<CancelRequest>>')
-            self.set_submit_button_init_state(True)
-            self.set_prompt_input_focus()
+            self.cancel_request()
 
-    def on_click_new_chat_button(self):
+    def on_click_new_chat_button(self, event = None):
         event_bus.publish('NewChat')
         self.input_frame.new_chat_button.pack_forget()
+
+    def hotkey_cancel_request(self, event = None):
+        self.set_submit_button_init_state(True)
+        self.set_prompt_input_focus()
+
+    def cancel_request(self, event = None):
+        self.root.event_generate('<<CancelRequest>>')
+        self.set_submit_button_init_state(True)
+        self.set_prompt_input_focus()
 
     def on_close_output_window(self):
         self.input_frame.new_chat_button.pack_forget()
 
     def on_open_chat_detail(self):
         self.input_frame.new_chat_button.pack(side=tk.RIGHT, padx=(0, 10), anchor=tk.S)
+        self.root.after(100, lambda: self.set_prompt_input_focus())
 
     def set_prompt_input_focus(self):
         self.check_input_text()
@@ -134,14 +142,22 @@ class InputManager:
     def bind_events(self):
         self.root.bind("<KeyPress>", lambda event: self.on_key_press(event, self.main_window.input_frame.submit_button))
         self.root.bind("<KeyRelease>", lambda e: self.on_key_release(e, self.root))
+        self.root.bind("<<HotKeyCancelRequest>>", self.hotkey_cancel_request)
+        self.root.bind("<<HotKeyNewChat>>", self.on_click_new_chat_button)
         self.input_frame.option_var.trace("w", lambda *args: self.on_type_option_change())
         self.input_frame.size_var.trace("w", lambda *args: self.on_size_option_change())
         self.input_frame.submit_button.config(command=lambda: self.on_click_submit_button())
         self.input_frame.new_chat_button.config(command=lambda: self.on_click_new_chat_button())
         self.input_frame.input_text.bind("<<Modified>>", self.on_text_change)
         self.input_frame.input_text.bind("<Alt-Return>", self.on_alt_return_press)
+        self.input_frame.input_text.bind("<Control-Shift-N>", self.on_click_new_chat_button)
+        self.input_frame.input_text.bind("<Control-Shift-n>", self.on_click_new_chat_button)
+
+        self.root.bind("<Control-Shift-O>", self.cancel_request)
+        self.root.bind("<Control-Shift-o>", self.cancel_request)
         self.input_frame.input_text.bind("<Return>", lambda event: "break")
-        self.input_frame.input_text.bind("<KeyRelease>", self.check_input_text)
+        self.input_frame.input_text.bind("<KeyRelease>", self.check_input_text, add="+")
+        self.input_frame.input_text.bind("<<CustomKey>>", self.check_input_text)
         self.input_frame.frame.bind("<<RequestOpenaiFinished>>", self.on_request_finished)
         self.input_frame.frame.bind("<<RequestOpenaiBegin>>", self.on_request_begin)
         self.root.bind("<Configure>", lambda e: self.adjust_text_height(e))

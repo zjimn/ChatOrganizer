@@ -2,9 +2,11 @@
 import tkinter as tk
 from tkinter import ttk, font
 
+from PIL.ImageOps import expand
 from ttkbootstrap import Style
 
 from config.constant import TOGGLE_BUTTON_CHECK_IMAGE_PATH, TOGGLE_BUTTON_UNCHECK_IMAGE_PATH
+from widget.custom_text_button import CustomTextButton
 from widget.undo_redo_entry import UndoRedoEntry
 from widget.custom_slider import CustomSlider
 from widget.icon_toggle_button import IconToggleButton
@@ -28,7 +30,7 @@ class SettingsWindow:
         self.model_options = []
         self.model_var = tk.StringVar(value="")
         self.win_width = 470
-        self.win_height = 380
+        self.win_height = 450
 
         self.custom_setting = {}
         self._init()
@@ -44,43 +46,70 @@ class SettingsWindow:
         self.main_frame = ttk.Frame(self.main_window, borderwidth=0, relief=tk.RAISED)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-
+        self.top_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
         self.model_server_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
-
+        self.help_button = CustomTextButton(self.top_frame, text="帮助", default_color="#7a7a7a", font=("Microsoft YaHei UI Bold", 10))
+        self.help_button.pack(side = tk.RIGHT, anchor=tk.S, padx=(0, 10), pady=0)
 
         model_server_label = ttk.Label(self.model_server_frame, text="模型服务", font=("Microsoft YaHei UI", 10))
         model_server_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
         self.model_server_combobox = ttk.Combobox(self.model_server_frame, textvariable = self.model_var, values=self.model_options, state="readonly")
-        self.model_server_combobox.pack(side = tk.LEFT, padx=(10, 10), pady=5)
+        self.model_server_combobox.pack(fill=tk.X, side = tk.LEFT, padx=(6, 10), pady=5, expand = True)
 
 
-        self.api_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
-        self.api_label = ttk.Label(self.api_frame, text="API Key ", font=("Microsoft YaHei UI", 10))
-        self.api_label.pack(side = tk.LEFT, padx=(10, 10), pady=5, expand = True)
-        self.test_api_key_button = ttk.Button(self.api_frame, text="测试", state=tk.DISABLED)
+
+
+        self.api_url_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
+        self.api_url_label = ttk.Label(self.api_url_frame, text="API Url", font=("Microsoft YaHei UI", 10), width=6)
+        self.api_url_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
+
+
+
+        self.style = Style(theme="flatly")
+
+        self.api_url_input_text_var = tk.StringVar()
+        self.style.configure("Custom.TEntry")
+        self.api_url_input_text = UndoRedoEntry(self.api_url_frame, style="Custom.TEntry",
+                                           textvariable=self.api_url_input_text_var)
+        self.api_url_input_text.pack(side=tk.LEFT, fill=tk.X, padx=10, pady=(0, 0), expand = True)
+
+        self.text_model_label = ttk.Label(self.api_url_frame, text="测试模型", font=("Microsoft YaHei UI", 10))
+        self.text_model_label.pack(side = tk.LEFT, padx=(10, 5), pady=5)
+        self.style = Style(theme="flatly")
+        self.test_model_text_var = tk.StringVar()
+        self.style.configure("Custom.TEntry")
+        self.test_model_text = UndoRedoEntry(self.api_url_frame, width=8, style="Custom.TEntry",
+                                           textvariable=self.test_model_text_var)
+        self.test_model_text.pack(side=tk.LEFT, padx=(5, 10), pady=(0, 0), expand = False)
+
+
+        self.api_key_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
+        self.api_key_label = ttk.Label(self.api_key_frame, text="API Key", font=("Microsoft YaHei UI", 10), width=6)
+        self.api_key_label.pack(side = tk.LEFT, padx=(10, 10), pady=5, expand = True)
+        self.test_api_key_button = ttk.Button(self.api_key_frame, text="测试", state=tk.DISABLED)
         self.test_api_key_button.pack(side="right", padx=(5, 10))
         self.style = Style(theme="flatly")
 
-        self.api_input_text_var = tk.StringVar()
+        self.api_key_input_text_var = tk.StringVar()
         self.style.configure("Custom.TEntry")
-        self.api_input_text = UndoRedoEntry(self.api_frame, width=50, style="Custom.TEntry",
-                                           textvariable=self.api_input_text_var)
-        self.api_input_text.pack(side=tk.LEFT, fill=tk.X, padx=10, pady=(0, 0), expand = True)
+        self.api_key_input_text = UndoRedoEntry(self.api_key_frame, width=50, style="Custom.TEntry",
+                                                textvariable=self.api_key_input_text_var)
+        self.api_key_input_text.pack(side=tk.LEFT, fill=tk.X, padx=10, pady=(0, 0), expand = True)
 
         self.separator_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
         self.separator = ttk.Separator(self.separator_frame, orient="horizontal")
         self.separator.pack(side="left", fill="x", padx=10, expand = True)
 
         self.type_effect_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
-        type_effect_label = ttk.Label(self.type_effect_frame, text="打字效果", font=("Microsoft YaHei UI", 10))
+        type_effect_label = ttk.Label(self.type_effect_frame, text="流式输出", font=("Microsoft YaHei UI", 10))
         type_effect_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
         check_image_path = TOGGLE_BUTTON_CHECK_IMAGE_PATH
         uncheck_image_path = TOGGLE_BUTTON_UNCHECK_IMAGE_PATH
-        self.type_effect_toggle_button = IconToggleButton(self.type_effect_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
-        self.type_effect_toggle_button.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
-        self.type_effect_toggle_button.set_state(True)
+        self.stream_response = IconToggleButton(self.type_effect_frame, default_state= True, check_image_path = check_image_path, uncheck_image_path = uncheck_image_path, width=50, height=25)
+        self.stream_response.pack(side = tk.LEFT, fill=tk.X, padx=0, pady=5)
+        self.stream_response.set_state(True)
 
-        type_effect_express_label = ttk.Label(self.type_effect_frame, text="(逐字打印输出)", font=("Microsoft YaHei UI", 9))
+        type_effect_express_label = ttk.Label(self.type_effect_frame, text="(生成过程中实时更新)", font=("Microsoft YaHei UI", 9))
         type_effect_express_label.pack(side = tk.LEFT, padx=(10, 10), pady=5)
 
         self.max_token_frame = ttk.Frame(self.main_frame, borderwidth=0, relief=tk.RAISED)
@@ -91,8 +120,10 @@ class SettingsWindow:
         limit_max_token_label.pack(side = tk.LEFT, padx=(10, 10), pady=15)
 
         self.main_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=5)
+        self.top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=0)
         self.model_server_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
-        self.api_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=5)
+        self.api_url_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=5)
+        self.api_key_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=5)
 
         self.separator_frame.pack(side = tk.TOP, fill=tk.X, padx=10, pady=(5, 0))
 
@@ -145,7 +176,7 @@ class SettingsWindow:
 
 
         button_frame = ttk.Frame(self.main_window)
-        button_frame.pack(side = tk.BOTTOM, fill=tk.X, padx=18, pady=(5, 20))
+        button_frame.pack(side = tk.BOTTOM, fill=tk.X, padx=18, pady=(5, 20), anchor=tk.SE)
 
         self.confirm_button = ttk.Button(button_frame, text="确定", width=7)
         self.confirm_button.pack(side="right", padx=(5,10))
@@ -153,7 +184,7 @@ class SettingsWindow:
         self.cancel_button.pack(side="right", padx=5)
 
         self.main_window.withdraw()
-        # self.main_window.iconbitmap("res/icon/setting.ico")
+        self.main_window.iconbitmap("res/icon/setting.ico")
 
 def main():
     root = tk.Tk()

@@ -7,6 +7,12 @@ class ModelServerService:
     def __init__(self):
         pass
 
+    def get_data_by_key(self, key):
+        with ModelServerAccess() as msa:
+            data = msa.get_data_by_key(key)
+            return data
+
+
     def get_all_list(self):
         with ModelServerAccess() as msa:
             list = msa.get_all()
