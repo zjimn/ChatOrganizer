@@ -24,14 +24,6 @@
    cd ChatOrganizer
 2. **安装依赖**  
    pip install -r requirements.txt
-3. **配置微软云平台 OpenAI 接口**  
-   - 在项目根目录下创建 .env 文件。  
-   - 添加以下内容：  
-     DEPLOYMENT_NAME=你的DEPLOYMENT_NAME(用于文字对话生成)    
-     DALLE_DEPLOYMENT_NAME=你的DEPLOYMENT_NAME(用于图片对话生成)  
-     API_KEY=你的API_KEY  
-     AZURE_ENDPOINT=你的AZURE_ENDPOINT  
-     API_VERSION=你的API_VERSION(如2024-06-01)  
 
 4. **运行应用**  
    python main.py
@@ -52,56 +44,3 @@
 5. **搜索与查看**
    - 使用顶部的搜索功能，快速查找历史对话记录。
    - 点击任意对话记录，可以查看详细内容或进行编辑。
-
-## 项目结构
-   
-   ChatGPT-对话管理器/  
-   ├── api  
-   │   ├── openai_image_api.py  
-   │   └── openai_text_api.py  
-   ├── config  
-   │   ├── app_config.py  
-   │   ├── constant.py  
-   │   └── enum.py  
-   ├── db  
-   │   ├── config.py  
-   │   ├── config_data_access.py  
-   │   ├── content_data_access.py  
-   │   ├── content_hierarchy_access.py  
-   │   ├── database.py  
-   │   ├── dialogue_data_access.py  
-   │   └── models.py  
-   ├── event  
-   │   ├── editor_tree_manager.py  
-   │   ├── event_bus.py  
-   │   ├── input_manager.py  
-   │   ├── list_editor.py  
-   │   ├── list_manager.py  
-   │   ├── main_manager.py  
-   │   ├── output_manager.py  
-   │   └── tree_manager.py  
-   ├── main.py  
-   ├── requirements.txt  
-   ├── res  
-   │   └── icon  
-   │       ├── folder_close.png  
-   │       └── folder_open.png  
-   ├── service  
-   │   └── content_service.py  
-   ├── ui  
-   │   ├── directory_tree.py  
-   │   ├── display_frame.py  
-   │   ├── editor_directory_tree.py  
-   │   ├── input_frame.py  
-   │   ├── main_window.py  
-   │   ├── output_window.py  
-   │   ├── scrollable_frame.py  
-   │   └── syle  
-   │       └── tree_view_style_manager.py  
-   └── util  
-       ├── ImageViewer.py  
-       ├── image_util.py  
-       ├── str_util.py  
-       ├── text_inserter.py  
-       ├── token_management.py  
-       └── window_util.py
